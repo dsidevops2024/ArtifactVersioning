@@ -24,12 +24,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get changed files between main and current merge commit
+      - name: Get changed files between main and PR head
         id: changes
         run: |
-          git fetch origin main
-          MERGE_BASE=$(git merge-base HEAD origin/main)
-          FILES=$(git diff --name-only "$MERGE_BASE" HEAD)
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          MERGE_BASE=$(git merge-base origin/main origin/${{ github.event.pull_request.head.ref }})
+          FILES=$(git diff --name-only "$MERGE_BASE" origin/${{ github.event.pull_request.head.ref }})
 
           echo "$FILES"
           {
@@ -43,16 +43,21 @@ jobs:
         run: |
           FILES="${{ steps.changes.outputs.files }}"
           COMPONENTS=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' | sort -u | tr '\n' ' ')
+          if [[ -z "$COMPONENTS" ]]; then
+            echo "No components changed. Exiting."
+            exit 1
+          fi
           echo "Detected components: $COMPONENTS"
           echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
 
       - name: Parse bump type from PR labels
+        if: github.event_name == 'pull_request'
         id: bump
         run: |
-          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            echo "❌ Not a PR event. Exiting."
-            exit 1
-          fi
+          #if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            #echo "❌ Not a PR event. Exiting."
+            #exit 1
+          #fi
 
           LABELS=$(jq -r '.pull_request.labels[].name' <<< '${{ toJson(github.event) }}')
           echo "Labels: $LABELS"
