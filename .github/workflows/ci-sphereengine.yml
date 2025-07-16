@@ -1,14 +1,13 @@
 name: ci-sphereengine
 
 on:
-  workflow_dispatch:
   #pull_request:
     #types: [closed]
-  #workflow_call:
-  #push:
-    #paths:
-      #- ".github/workflows/AV-sphereengine.yml"
-      #- "sphereengine/**"
+  workflow_call:
+  push:
+    paths:
+      - ".github/workflows/ci-sphereengine.yml"
+      - "sphereengine/**"
 
 jobs:
   build:
