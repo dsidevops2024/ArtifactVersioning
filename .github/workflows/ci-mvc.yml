@@ -6,7 +6,7 @@ on:
   workflow_call:
   push:
     paths:
-      - ".github/workflows/AV-mvc.yml"
+      - ".github/workflows/ci-mvc.yml"
       - "mvc/**"
 
 jobs:
