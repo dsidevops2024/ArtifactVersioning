@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
   #pull_request:
     #types: [closed]
-  #workflow_call:
-  #push:
-    #paths:
-      #- ".github/workflows/AV-mvc.yml"
-      #- "mvc/**"
+  workflow_call:
+  push:
+    paths:
+      - ".github/workflows/AV-mvc.yml"
+      - "mvc/**"
 
 jobs:
   build:
