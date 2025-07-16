@@ -1,8 +1,8 @@
 name: ci-sphereengine
 
 on:
-  pull_request:
-    types: [closed]
+  #pull_request:
+    #types: [closed]
   workflow_call:
   push:
     paths:
@@ -26,14 +26,33 @@ jobs:
       - name: Build with Maven check
         run: mvn clean install
 
-      - name: Bump versions sphereengines
-        id: bump
+      - name: Determine artifact path
+        id: path
+        run: |
+          COMPONENT="sphereengine"
+          BRANCH="${GITHUB_REF#refs/heads/}"
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$BRANCH" == "main" ]]; then
+            VERSION=$(echo '${{ vars.JSON_VERSIONS }}' | jq -r --arg c "$COMPONENT" '.[$c]')
+            if [ "$VERSION" == "null" ] || [ -z "$VERSION" ]; then
+              echo "❌ No version found for $COMPONENT in main"
+              exit 1
+            fi
+            echo "✅ Main branch: version path"
+            echo "path=org/$COMPONENT/$VERSION/" >> "$GITHUB_OUTPUT"
+          else
+            echo "✅ Dev/feature branch: fallback path"
+            echo "path=org/$COMPONENT/$BRANCH/latest/" >> "$GITHUB_OUTPUT"
+          fi
+      
+      #- name: Bump versions sphereengines
+        #id: bump
         #if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
-        if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Merge pull request')
-        uses: ./.github/actions/semversion-calculation
-        with:
-          component: "sphereengine"
-          versions-json: ${{ vars.JSON_VERSIONS }}  
+        #if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Merge pull request')
+        #uses: ./.github/actions/semversion-calculation
+        #with:
+          #component: "sphereengine"
+          #versions-json: ${{ vars.JSON_VERSIONS }}  
 
       - name: Upload to artifact 
         run: |

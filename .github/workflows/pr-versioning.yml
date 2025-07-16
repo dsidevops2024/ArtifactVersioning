@@ -1,0 +1,28 @@
+name: pr-versioning
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  versioning:
+    if: github.event.pull_request.merged == true
+    uses: dsidevops2024/ArtifactVersioning/.github/workflows/semantic-versioning.yml@main
+    with:
+      json_versions: ${{ vars.JSON_VERSIONS }}
+
+  upload:
+    needs: versioning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write semver bumps
+        run: |
+          echo '${{ needs.versioning.outputs.updated_json }}' 
+
+      - name: Save bumped versions to GitHub variable
+        run: |
+          gh variable set JSON_VERSIONS --body '${{ needs.versioning.outputs.updated_json }}' --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
