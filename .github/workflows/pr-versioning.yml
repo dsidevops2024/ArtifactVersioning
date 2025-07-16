@@ -9,7 +9,7 @@ on:
 jobs:
   versioning:
     if: github.event.pull_request.merged == true
-    uses: your-org/your-repo/.github/workflows/semantic-versioning.yml@main
+    uses: dsidevops2024/ArtifactVersioning/.github/workflows/semantic-versioning.yml@main
     with:
       json_versions: ${{ vars.JSON_VERSIONS }}
 
