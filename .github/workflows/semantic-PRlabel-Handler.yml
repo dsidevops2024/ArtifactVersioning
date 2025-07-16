@@ -1,0 +1,106 @@
+name: Semantic-PRLabel-Handler
+
+on:
+  workflow_call:
+    inputs:
+      json_versions:
+        description: "The current versions JSON string"
+        required: true
+        type: string
+    outputs:
+      updated_json:
+        description: "Updated JSON with bumped versions"
+        value: ${{ jobs.bump-json-version.outputs.updated_json }}
+
+jobs:
+  bump-json-version:
+    runs-on: ubuntu-latest
+    outputs:
+      updated_json: ${{ steps.bump_json.outputs.updated_json }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files between main and current merge commit
+        id: changes
+        run: |
+          git fetch origin main
+          MERGE_BASE=$(git merge-base HEAD origin/main)
+          FILES=$(git diff --name-only "$MERGE_BASE" HEAD)
+
+          echo "$FILES"
+          {
+            echo 'files<<EOF'
+            echo "$FILES"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Extract changed components
+        id: components
+        run: |
+          FILES="${{ steps.changes.outputs.files }}"
+          COMPONENTS=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' | sort -u | tr '\n' ' ')
+          echo "Detected components: $COMPONENTS"
+          echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
+
+      - name: Parse bump type from PR labels
+        id: bump
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "❌ Not a PR event. Exiting."
+            exit 1
+          fi
+
+          LABELS=$(jq -r '.pull_request.labels[].name' <<< '${{ toJson(github.event) }}')
+          echo "Labels: $LABELS"
+
+          TYPE=""
+          if echo "$LABELS" | grep -q "semver:major"; then
+            TYPE="major"
+          elif echo "$LABELS" | grep -q "semver:minor"; then
+            TYPE="minor"
+          elif echo "$LABELS" | grep -q "semver:patch"; then
+            TYPE="patch"
+          else
+            echo "❌ No valid semver label (semver:major|minor|patch) found."
+            exit 1
+          fi
+
+          echo "✅ Bump type: $TYPE"
+          echo "type=$TYPE" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version in JSON
+        id: bump_json
+        run: |
+          COMPONENTS="${{ steps.components.outputs.components }}"
+          BUMP_TYPE="${{ steps.bump.outputs.type }}"
+          echo '${{ inputs.json_versions }}' > versions.json
+          jq '.' versions.json > tmp.json
+
+          for COMP in $COMPONENTS; do
+            CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
+            if [ "$CURRENT" == "null" ]; then
+              echo "Component $COMP not found. Skipping."
+              continue
+            fi
+
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+            case "$BUMP_TYPE" in
+              major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+              minor) ((MINOR+=1)); PATCH=0 ;;
+              patch) ((PATCH+=1)) ;;
+            esac
+
+            NEW="$MAJOR.$MINOR.$PATCH"
+            echo "🔧 $COMP bumped to $NEW"
+            tmpfile=$(mktemp)
+            jq --arg c "$COMP" --arg v "$NEW" '.[$c]=$v' tmp.json > "$tmpfile" && mv "$tmpfile" tmp.json
+          done
+
+          FINAL_JSON=$(jq -c . < tmp.json)
+          echo "✅ Final bumped JSON: $FINAL_JSON"
+          echo "updated_json=$FINAL_JSON" >> "$GITHUB_OUTPUT"
