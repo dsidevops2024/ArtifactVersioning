@@ -2,7 +2,7 @@ name: ci-mvc
 
 on:
   pull_request:
-    types: [closed]
+    types: [labelled]
   workflow_call:
   push:
     paths:
