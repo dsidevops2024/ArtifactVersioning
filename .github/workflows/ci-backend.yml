@@ -1,12 +1,12 @@
 name: ci-backend
 
 on:
-  workflow_dispatch:
-  #workflow_call:
-  #push:
-    #paths:
-      #- 'backend/Receivers/**'
-      #- 'backend/Scheduler/**'
+  #workflow_dispatch:
+  workflow_call:
+  push:
+    paths:
+      - 'backend/Receivers/**'
+      - 'backend/Scheduler/**'
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
       - name: Bump versions 
         id: bump
         #if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
-        if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Merge pull request')
+        #if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Merge pull request')
         uses: ./.github/actions/semversion-calculation
         with:
           component: "backend"
