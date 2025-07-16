@@ -1,0 +1,44 @@
+name: ci-mvc
+
+on:
+  #pull_request:
+    #types: [closed]
+  workflow_call:
+  push:
+    paths:
+      - ".github/workflows/ci-mvc.yml"
+      - "mvc/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout codes
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build with Maven 
+        run: mvn clean install
+
+      - name: Run tests
+        run: mvn test
+
+      - name: Bump versions mvc
+        id: bump
+        #if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
+        if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Merge pull request')
+        uses: ./.github/actions/semversion-calculation
+        with:
+          component: "mvc"
+          versions-json: ${{ vars.JSON_VERSIONS }}
+
+      - name: Push artifact to Artifactory (placeholder)
+        run: |
+          echo "Pushing artifact to Artifactory..." 
