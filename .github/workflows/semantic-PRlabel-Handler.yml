@@ -51,19 +51,19 @@ jobs:
           echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
 
       - name: Parse bump type from PR labels
-        #if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         id: bump
         env:
-          EVENT_JSON: ${{ toJson(github.event) }}
+           LABELS_JSON: ${{ toJson(github.event.pull_request.labels) }}
         run: |
-          #if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            #echo "❌ Not a PR event. Exiting."
-            #exit 1
-          #fi
-          echo '${{ toJson(github.event) }}'
           #LABELS=$(jq -r '.pull_request.labels[].name' <<< '${{ toJson(github.event) }}')
-          LABELS=$(jq -r '.pull_request.labels[].name' <<< "$EVENT_JSON")
-          echo "Labels: $LABELS"
+          #LABELS=$(jq -r '.pull_request.labels[].name' <<< "$EVENT_JSON")
+          #echo "Labels: $LABELS"
+          echo "Extracting labels..."
+          echo "$LABELS_JSON"
+
+          LABELS=$(jq -r '.[].name' <<< "$LABELS_JSON")
+          echo "Labels found: $LABELS"
 
           TYPE=""
           if echo "$LABELS" | grep -q "semver:major"; then
