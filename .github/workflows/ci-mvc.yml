@@ -24,7 +24,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven check3
+      - name: Build with Maven check4
         run: mvn clean install
 
       - name: Run tests
@@ -43,6 +43,7 @@ jobs:
               exit 1
             fi
             echo "✅ Main branch: version path"
+            echo "📦 VERSION for $COMPONENT: $VERSION"
             echo "path=org/$COMPONENT/$VERSION/" >> "$GITHUB_OUTPUT"
           else
             echo "✅ Dev/feature branch: fallback path"
