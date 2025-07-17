@@ -51,15 +51,18 @@ jobs:
           echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
 
       - name: Parse bump type from PR labels
-        if: github.event_name == 'pull_request'
+        #if: github.event_name == 'pull_request'
         id: bump
+        env:
+          EVENT_JSON: ${{ toJson(github.event) }}
         run: |
           #if [[ "${{ github.event_name }}" != "pull_request" ]]; then
             #echo "❌ Not a PR event. Exiting."
             #exit 1
           #fi
-
-          LABELS=$(jq -r '.pull_request.labels[].name' <<< '${{ toJson(github.event) }}')
+          echo '${{ toJson(github.event) }}'
+          #LABELS=$(jq -r '.pull_request.labels[].name' <<< '${{ toJson(github.event) }}')
+          LABELS=$(jq -r '.pull_request.labels[].name' <<< "$EVENT_JSON")
           echo "Labels: $LABELS"
 
           TYPE=""
@@ -76,7 +79,8 @@ jobs:
 
           echo "✅ Bump type: $TYPE"
           echo "type=$TYPE" >> "$GITHUB_OUTPUT"
-
+        env:
+          EVENT_JSON: ${{ toJson(github.event) }}
       - name: Bump version in JSON
         id: bump_json
         run: |
