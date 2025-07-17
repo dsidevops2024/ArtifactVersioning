@@ -79,8 +79,7 @@ jobs:
 
           echo "✅ Bump type: $TYPE"
           echo "type=$TYPE" >> "$GITHUB_OUTPUT"
-        env:
-          EVENT_JSON: ${{ toJson(github.event) }}
+       
       - name: Bump version in JSON
         id: bump_json
         run: |
