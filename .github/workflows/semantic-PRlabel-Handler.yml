@@ -42,7 +42,11 @@ jobs:
         id: components
         run: |
           FILES="${{ steps.changes.outputs.files }}"
-          COMPONENTS=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' | sort -u | tr '\n' ' ')
+          COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP '^ci-\K[^.]+(?=\.yml)' || true)
+          COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" { print $1 }' | sort -u || true)
+
+          COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
+          #COMPONENTS=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' | sort -u | tr '\n' ' ')
           if [[ -z "$COMPONENTS" ]]; then
             echo "No components changed. Exiting."
             exit 1
