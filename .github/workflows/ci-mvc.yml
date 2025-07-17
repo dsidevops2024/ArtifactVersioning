@@ -43,6 +43,7 @@ jobs:
               exit 1
             fi
             echo "✅ Main branch: version path"
+            echo "📦 VERSION for $COMPONENT: $VERSION"
             echo "path=org/$COMPONENT/$VERSION/" >> "$GITHUB_OUTPUT"
           else
             echo "✅ Dev/feature branch: fallback path"
