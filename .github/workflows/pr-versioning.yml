@@ -24,6 +24,6 @@ jobs:
 
       - name: Save bumped versions to GitHub variable
         run: |
-          gh variable set JSON_VERSIONS --body '${{ needs.versioning.outputs.updated_json }}' --repo ${{ github.repository }}
+          gh variable set JSON_VERSIONS --body '${{ needs.versioning.outputs.updated_json }}' --org dsidevops2024 --visibility all
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
