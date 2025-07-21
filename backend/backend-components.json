@@ -1,7 +1,7 @@
 [
   {
     "title": "ActivityCollector",
-    "srcPath": "Receivers/ActivityCollector/testingNew1.txt"
+    "srcPath": "Receivers/ActivityCollector/testing.txt"
   },
   {
     "title": "FPolicy_Server",
