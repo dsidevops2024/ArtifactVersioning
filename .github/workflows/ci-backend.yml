@@ -11,19 +11,16 @@ on:
 jobs:
   Changed-Files-JSON:
     runs-on: ubuntu-latest
-    continue-on-error: true
     outputs:
-      file-list: ${{ steps.changed-files.outputs.changed_files }}
       components: ${{ steps.json-format.outputs.components }}
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+          fetch-depth: 0
 
       - name: Get raw list of changed file paths
         id: changed-files
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_OUTPUT
@@ -31,44 +28,28 @@ jobs:
             echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
           fi
 
-      - name: List changed files or full component list
+      - name: Map files to Java components
         id: json-format
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "create" ]]; then
-            components=$(jq -c '.' backend/backend-components.json)
-            echo "components=$components" >> $GITHUB_OUTPUT
-            echo "Building fullstack"
-          else
-            list=""
-            for file in ${{ steps.changed-files.outputs.changed_files }}; do
-              path="${file#backend/}"     # Remove "backend/"
-              path="${path%%/*}"          # Get first folder as component
-              
-              # Handle specific directory cases
-              if [[ "$file" == backend/ntfs/* || "$file" == backend/NetApp_FPolicy/* ]]; then
-                path="${file#backend/*/}"  # remove backend/ntfs/ or NetApp_FPolicy/
-                path="${path%%/*}"         # grab the next level
-              fi
+          list=""
+          for file in ${{ steps.changed-files.outputs.changed_files }}; do
+            path="${file#backend/}"
+            component="${path%%/*}"
 
-              if [[ "$file" == backend/ActivityCollector/Scripts/* ]]; then
-                jq_output=$(jq -c 'map(select(.title=="ActivityCollector/Scripts")) | first' backend/backend-components.json)
-              else
-                jq_output=$(jq -c "map(select(.title==\"${path}\")) | first" backend/backend-components.json)
-              fi
+            jq_output=$(jq -c "map(select(.title==\"${component}\")) | first" backend/backend-components.json)
 
-              if [[ "$jq_output" != "null" && -n "$jq_output" ]]; then
-                list="${list}${jq_output},"
-              else
-                echo "No component found for path: $path"
-              fi
-            done
+            if [[ "$jq_output" != "null" && -n "$jq_output" ]]; then
+              list="${list}${jq_output},"
+            else
+              echo "No component found for $component"
+            fi
+          done
 
-            # Remove trailing comma, wrap in array, deduplicate
-            list="[${list%,}]"
-            components=$(echo "$list" | jq -c 'unique_by(.title)')
-            echo "All changed components: $components"
-            echo "components=$components" >> $GITHUB_OUTPUT
-          fi
+          list="[${list%,}]"
+          components=$(echo "$list" | jq -c 'unique_by(.title)')
+          echo "components=${components}" >> $GITHUB_OUTPUT
+          echo "Detected components: $components"
+
   Build-Changed-Components:
     needs: Changed-Files-JSON
     runs-on: ubuntu-latest
@@ -77,7 +58,7 @@ jobs:
         component: ${{ fromJson(needs.Changed-Files-JSON.outputs.components) }}
     defaults:
       run:
-        working-directory: backend/${{ matrix.component.title }}
+        working-directory: backend/${{ matrix.component.srcPath }}
 
     steps:
       - uses: actions/checkout@v4
@@ -89,7 +70,18 @@ jobs:
           java-version: '17'
 
       - name: Build with Maven
-        run: mvn clean install
+        run: mvn clean install -DskipTests
+
+      - name: Copy built JAR
+        run: |
+          mkdir -p ${{ github.workspace }}/${{ matrix.component.outPath }}
+          cp target/*.jar ${{ github.workspace }}/${{ matrix.component.outPath }}/${{ matrix.component.outName }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.component.title }}
+          path: ${{ github.workspace }}/${{ matrix.component.outPath }}/${{ matrix.component.outName }}
 
       - name: Bump versions 
         id: bump
