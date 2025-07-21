@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
 
       - name: Get raw list of changed file paths
         id: changed-files
@@ -82,16 +82,3 @@ jobs:
         with:
           name: ${{ matrix.component.title }}
           path: ${{ github.workspace }}/${{ matrix.component.outPath }}/${{ matrix.component.outName }}
-
-      - name: Bump versions 
-        id: bump
-        #if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
-        #if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Merge pull request')
-        uses: ./.github/actions/semversion-calculation
-        with:
-          component: "backend"
-          versions-json: ${{ vars.JSON_VERSIONS }}    
-
-      - name: Uplaod to artifcat
-        run: |
-           echo "Backend upload..."
