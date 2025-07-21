@@ -30,25 +30,35 @@ jobs:
 
       - name: Map files to components
         id: json-format
+        shell: bash
         run: |
           list=""
-          for file in ${{ steps.changed-files.outputs.changed_files }}; do
-            path="${file#backend/}"
-            component="${path%%/*}"
 
-            jq_output=$(jq -c "map(select(.title==\"${component}\")) | first" backend/backend-components.json)
+           for file in ${{ steps.changed-files.outputs.changed_files }}; do
+             # Extract third path segment: backend/<group>/<component>/...
+             component=$(echo "$file" | cut -d'/' -f3)
+             #path="${file#backend/}" -old code
+             #component="${path%%/*}" -old code
+             if [[ -z "$component" ]]; then
+               echo "Skipped file: $file (couldn't determine component)"
+               continue
+             fi
 
-            if [[ "$jq_output" != "null" && -n "$jq_output" ]]; then
-              list="${list}${jq_output},"
-            else
+             jq_output=$(jq -c "map(select(.title==\"${component}\")) | first" backend/backend-components.json)
+            
+             if [[ "$jq_output" != "null" && -n "$jq_output" ]]; then
+               list="${list}${jq_output},"
+             else
               echo "No component found for $component"
-            fi
-          done
+             fi
+             done
 
-          list="[${list%,}]"
-          components=$(echo "$list" | jq -c 'unique_by(.title)')
-          echo "components=${components}" >> $GITHUB_OUTPUT
-          echo "Detected components: $components"
+             # Wrap list in brackets, remove trailing comma, deduplicate by title
+             list="[${list%,}]"
+             components=$(echo "$list" | jq -c 'unique_by(.title)')
+
+             echo "components=${components}" >> $GITHUB_OUTPUT
+            echo "Detected components: $components"
 
   Build-Changed-Components:
     needs: Changed-Files-JSON
