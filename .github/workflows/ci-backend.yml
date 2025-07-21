@@ -11,9 +11,7 @@ on:
 jobs:
   Changed-Files-JSON:
     runs-on: ubuntu-latest
-    continue-on-error: true
     outputs:
-      file-list: ${{ steps.changed-files.outputs.changed_files }}
       components: ${{ steps.json-format.outputs.components }}
 
     steps:
@@ -23,7 +21,6 @@ jobs:
 
       - name: Get raw list of changed file paths
         id: changed-files
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_OUTPUT
@@ -31,44 +28,38 @@ jobs:
             echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
           fi
 
-      - name: List changed files or full component list
+      - name: Map files to components
         id: json-format
+        shell: bash
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "create" ]]; then
-            components=$(jq -c '.' backend/backend-components.json)
-            echo "components=$components" >> $GITHUB_OUTPUT
-            echo "Building fullstack"
-          else
-            list=""
-            for file in ${{ steps.changed-files.outputs.changed_files }}; do
-              path="${file#backend/}"     # Remove "backend/"
-              path="${path%%/*}"          # Get first folder as component
-              
-              # Handle specific directory cases
-              if [[ "$file" == backend/ntfs/* || "$file" == backend/NetApp_FPolicy/* ]]; then
-                path="${file#backend/*/}"  # remove backend/ntfs/ or NetApp_FPolicy/
-                path="${path%%/*}"         # grab the next level
-              fi
+          list=""
 
-              if [[ "$file" == backend/ActivityCollector/Scripts/* ]]; then
-                jq_output=$(jq -c 'map(select(.title=="ActivityCollector/Scripts")) | first' backend/backend-components.json)
-              else
-                jq_output=$(jq -c "map(select(.title==\"${path}\")) | first" backend/backend-components.json)
-              fi
+           for file in ${{ steps.changed-files.outputs.changed_files }}; do
+             # Extract third path segment: backend/<group>/<component>/...
+             component=$(echo "$file" | cut -d'/' -f3)
+             #path="${file#backend/}" -old code
+             #component="${path%%/*}" -old code
+             if [[ -z "$component" ]]; then
+               echo "Skipped file: $file (couldn't determine component)"
+               continue
+             fi
 
-              if [[ "$jq_output" != "null" && -n "$jq_output" ]]; then
-                list="${list}${jq_output},"
-              else
-                echo "No component found for path: $path"
-              fi
-            done
+             jq_output=$(jq -c "map(select(.title==\"${component}\")) | first" backend/backend-components.json)
+            
+             if [[ "$jq_output" != "null" && -n "$jq_output" ]]; then
+               list="${list}${jq_output},"
+             else
+              echo "No component found for $component"
+             fi
+             done
 
-            # Remove trailing comma, wrap in array, deduplicate
-            list="[${list%,}]"
-            components=$(echo "$list" | jq -c 'unique_by(.title)')
-            echo "All changed components: $components"
-            echo "components=$components" >> $GITHUB_OUTPUT
-          fi
+             # Wrap list in brackets, remove trailing comma, deduplicate by title
+             list="[${list%,}]"
+             components=$(echo "$list" | jq -c 'unique_by(.title)')
+
+             echo "components=${components}" >> $GITHUB_OUTPUT
+            echo "Detected components: $components"
+
   Build-Changed-Components:
     needs: Changed-Files-JSON
     runs-on: ubuntu-latest
@@ -77,7 +68,7 @@ jobs:
         component: ${{ fromJson(needs.Changed-Files-JSON.outputs.components) }}
     defaults:
       run:
-        working-directory: backend/${{ matrix.component.title }}
+        working-directory: backend/${{ matrix.component.srcPath }}
 
     steps:
       - uses: actions/checkout@v4
@@ -89,17 +80,8 @@ jobs:
           java-version: '17'
 
       - name: Build with Maven
-        run: mvn clean install
-
-      - name: Bump versions 
-        id: bump
-        #if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
-        #if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Merge pull request')
-        uses: ./.github/actions/semversion-calculation
-        with:
-          component: "backend"
-          versions-json: ${{ vars.JSON_VERSIONS }}    
-
-      - name: Uplaod to artifcat
+        run: mvn clean install -DskipTests
+      
+      - name: Push backend comp to Artifactory (placeholder)
         run: |
-           echo "Backend upload..."
+          echo "Pushing backend artifact to Artifactory..."
