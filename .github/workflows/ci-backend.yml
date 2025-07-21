@@ -81,7 +81,18 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean install -DskipTests
-      
+        
+  Trigger-Version-Bump:
+    needs: Changed-Files-JSON
+    uses: dsidevops2024/ArtifactVersioning/.github/workflows/semantic-PRlabel-Handler.yml@main
+    with:
+       json_versions: ${{ vars.JSON_VERSIONS }}
+       components: ${{ join(fromJson(needs.Changed-Files-JSON.outputs.components), ' ') }}
+
+  Push-To-Artifactory:
+    needs: Build-Changed-Components
+    runs-on: ubuntu-latest
+    steps:
       - name: Push backend comp to Artifactory (placeholder)
         run: |
           echo "Pushing backend artifact to Artifactory..."
