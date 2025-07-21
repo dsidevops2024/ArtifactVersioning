@@ -71,14 +71,7 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean install -DskipTests
-        
-      - name: Copy built JAR
+      
+      - name: Push backend comp to Artifactory (placeholder)
         run: |
-          mkdir -p ${{ github.workspace }}/${{ matrix.component.outPath }}
-          cp target/*.jar ${{ github.workspace }}/${{ matrix.component.outPath }}/${{ matrix.component.outName }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.component.title }}
-          path: ${{ github.workspace }}/${{ matrix.component.outPath }}/${{ matrix.component.outName }}
+          echo "Pushing backend artifact to Artifactory..."
