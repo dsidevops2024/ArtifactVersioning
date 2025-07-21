@@ -1,11 +1,14 @@
 [
   {
-    "title": "ActivityCollector"
+    "title": "ActivityCollector",
+    "srcPath": "Receivers/ActivityCollector/testingNew1.txt"
   },
   {
-    "title": "FPolicy_Server"
+    "title": "FPolicy_Server",
+    "srcPath": "Receivers/FPolicy_Server/testingNew1.txt"
   },
   {
-    "title": "SchedulerService"
+    "title": "SchedulerService",
+    "srcPath": "Scheduler/SchedulerService/testingNew.txt"
   }
 ]
