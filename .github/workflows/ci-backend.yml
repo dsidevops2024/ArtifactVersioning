@@ -68,7 +68,7 @@ jobs:
         component: ${{ fromJson(needs.Changed-Files-JSON.outputs.components) }}
     defaults:
       run:
-        working-directory: backend/${{ matrix.component.title }}
+        working-directory: backend/${{ matrix.component.srcPath }}
 
     steps:
       - uses: actions/checkout@v4
