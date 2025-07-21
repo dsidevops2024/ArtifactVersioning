@@ -28,7 +28,7 @@ jobs:
             echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
           fi
 
-      - name: Map files to Java components
+      - name: Map files to components
         id: json-format
         run: |
           list=""
@@ -58,7 +58,7 @@ jobs:
         component: ${{ fromJson(needs.Changed-Files-JSON.outputs.components) }}
     defaults:
       run:
-        working-directory: backend/${{ matrix.component.srcPath }}
+        working-directory: backend/${{ matrix.component.title }}
 
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean install -DskipTests
-
+        
       - name: Copy built JAR
         run: |
           mkdir -p ${{ github.workspace }}/${{ matrix.component.outPath }}
