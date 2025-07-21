@@ -1,23 +1,11 @@
 [
   {
-    "title": "ActivityCollector",
-    "srcPath": "connectors/ActivityCollector/ActivityCollector.csproj",
-    "outPath": "Receivers/ActivityCollector",
-    "outName": "ActivityCollector.zip",
-    "type": "dotnet-publish"
+    "title": "ActivityCollector"
   },
   {
-    "title": "FPolicy_Server",
-    "srcPath": "Receivers/NetApp_FPolicy/FPolicy_Server/FPolicy_Server.csproj",
-    "outPath": "dist/temp/Linux/FPolicy",
-    "outName": "FPolicy_Server.zip",
-    "type": "dotnet-publish"
+    "title": "FPolicy_Server"
   },
   {
-    "title": "SchedulerService",
-    "srcPath": "Scheduler/SchedulerService/SchedulerService.csproj",
-    "outPath": "Scheduler",
-    "outName": "SchedulerService.zip",
-    "type": "dotnet-publish"
+    "title": "SchedulerService"
   }
 ]
