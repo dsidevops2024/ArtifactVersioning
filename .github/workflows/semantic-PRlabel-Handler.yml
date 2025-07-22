@@ -7,10 +7,6 @@ on:
         description: "The current versions JSON string"
         required: true
         type: string
-      components:
-        description: "List of changed components (space-separated)"
-        required: false
-        type: string
     outputs:
       updated_json:
         description: "Updated JSON with bumped versions"
@@ -29,7 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: Get changed files between main and PR head
-        if: ${{ !inputs.components }}
+        #if: ${{ !inputs.components }}
         id: changes
         run: |
           git fetch origin ${{ github.event.pull_request.head.ref }}
@@ -43,43 +39,72 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
+      #- name: Extract changed components
+        #if: ${{ !inputs.components }}
+        #id: components
+        #run: |    
+          #FILES="${{ steps.changes.outputs.files }}"
+          #COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
+          #COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" { print $1 }' | sort -u || true)
+
+          #COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
+          #COMPONENTS=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' | sort -u | tr '\n' ' ')
+          #if [[ -z "$COMPONENTS" ]]; then
+            #echo "No components changed. Exiting."
+            #exit 1
+          #fi
+          
+          #echo "✅ Detected components: $COMPONENTS"
+          # Outputs
+          #echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
+          
       - name: Extract changed components
-        if: ${{ !inputs.components }}
+        #if: ${{ !inputs.components }}
         id: components
-        run: |    
+        shell: bash
+        run: |
           FILES="${{ steps.changes.outputs.files }}"
           COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
           COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" { print $1 }' | sort -u || true)
 
           COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
-          #COMPONENTS=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' | sort -u | tr '\n' ' ')
+
+          # --- New logic for backend components from backend-components.json ---
+          # Filter backend files only
+          BACKEND_FILES=$(echo "$FILES" | grep '^backend/' || true)
+    
+          if [ -n "$BACKEND_FILES" ]; then
+             COMPONENTS_JSON="backend-components.json"
+             declare -A MATCHED_BACKEND_COMPONENTS=()
+      
+             while IFS= read -r file; do
+                component_title=$(jq -r --arg path "$file" '
+                  .[] | select($path | startswith("backend/" + .srcPath)) | .title
+                ' "$COMPONENTS_JSON")
+        
+                if [ -n "$component_title" ]; then
+                  MATCHED_BACKEND_COMPONENTS["$component_title"]=1
+                fi
+             done <<< "$BACKEND_FILES"
+      
+             BACKEND_COMPONENTS=$(printf "%s\n" "${!MATCHED_BACKEND_COMPONENTS[@]}" | sort | tr '\n' ' ')
+      
+             # Append backend components to COMPONENTS if any found
+             if [ -n "$BACKEND_COMPONENTS" ]; then
+               COMPONENTS="$COMPONENTS $BACKEND_COMPONENTS"
+             fi
+          fi
+
+          COMPONENTS=$(echo "$COMPONENTS" | xargs -n1 | sort -u | tr '\n' ' ')
+
           if [[ -z "$COMPONENTS" ]]; then
             echo "No components changed. Exiting."
             exit 1
           fi
 
-          # Prepare JSON output by looking up in backend/backend-components.json
-          JSON_COMPONENTS=""
-             for title in $COMPONENTS; do
-                jq_match=$(jq -c "map(select(.title==\"${title}\")) | first" backend/backend-components.json)
-                if [[ "$jq_match" != "null" && -n "$jq_match" ]]; then
-                  JSON_COMPONENTS="${JSON_COMPONENTS}${jq_match},"
-                else
-                  echo "Warning: No match for component '$title' in backend-components.json"
-                fi
-              done
-
-             # Finalize JSON array and deduplicate
-             JSON_COMPONENTS="[${JSON_COMPONENTS%,}]"
-             JSON_COMPONENTS=$(echo "$JSON_COMPONENTS" | jq -c 'unique_by(.title)')
+          echo "✅ Detected components: $COMPONENTS"
+          echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"  
           
-             echo "✅ Detected components: $COMPONENTS"
-             echo "✅ JSON components: $JSON_COMPONENTS"
-
-             # Outputs
-             echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
-             echo "components_json=$JSON_COMPONENTS" >> "$GITHUB_OUTPUT"
-           
       - name: Parse bump type from PR labels
         if: github.event_name == 'pull_request'
         id: bump
