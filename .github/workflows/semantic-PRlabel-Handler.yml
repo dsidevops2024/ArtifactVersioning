@@ -78,7 +78,11 @@ jobs:
              declare -A MATCHED_BACKEND_COMPONENTS=()
       
              while IFS= read -r file; do
+                #component_title=$(jq -r --arg path "$file" '
+                  #.[] | select($path | startswith("backend/" + .srcPath)) | .title
+                #' "$COMPONENTS_JSON")
                 component_title=$(jq -r --arg path "$file" '
+                  map(select(type == "object" and (.srcPath != null))) |
                   .[] | select($path | startswith("backend/" + .srcPath)) | .title
                 ' "$COMPONENTS_JSON")
         
