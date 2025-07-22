@@ -46,14 +46,7 @@ jobs:
       - name: Extract changed components
         if: ${{ !inputs.components }}
         id: components
-        run: |
-          #if [[ -n "${{ inputs.components }}" ]]; then
-            #COMPONENTS="${{ inputs.components }}"
-            #echo "✅ Using passed components: $COMPONENTS"
-            #echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
-            #exit 0
-          fi
-    
+        run: |    
           FILES="${{ steps.changes.outputs.files }}"
           COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
           COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" { print $1 }' | sort -u || true)
@@ -64,9 +57,29 @@ jobs:
             echo "No components changed. Exiting."
             exit 1
           fi
-          echo "Detected components: $COMPONENTS"
-          echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
 
+          # Prepare JSON output by looking up in backend/backend-components.json
+          JSON_COMPONENTS=""
+             for title in $COMPONENTS; do
+                jq_match=$(jq -c "map(select(.title==\"${title}\")) | first" backend/backend-components.json)
+                if [[ "$jq_match" != "null" && -n "$jq_match" ]]; then
+                  JSON_COMPONENTS="${JSON_COMPONENTS}${jq_match},"
+                else
+                  echo "Warning: No match for component '$title' in backend-components.json"
+                fi
+              done
+
+             # Finalize JSON array and deduplicate
+             JSON_COMPONENTS="[${JSON_COMPONENTS%,}]"
+             JSON_COMPONENTS=$(echo "$JSON_COMPONENTS" | jq -c 'unique_by(.title)')
+          
+             echo "✅ Detected components: $COMPONENTS"
+             echo "✅ JSON components: $JSON_COMPONENTS"
+
+             # Outputs
+             echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
+             echo "components_json=$JSON_COMPONENTS" >> "$GITHUB_OUTPUT"
+           
       - name: Parse bump type from PR labels
         if: github.event_name == 'pull_request'
         id: bump

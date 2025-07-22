@@ -33,7 +33,8 @@ jobs:
         shell: bash
         run: |
           list=""
-
+          titles=""
+          
            for file in ${{ steps.changed-files.outputs.changed_files }}; do
              # Extract third path segment: backend/<group>/<component>/...
              component=$(echo "$file" | cut -d'/' -f3)
@@ -48,6 +49,7 @@ jobs:
             
              if [[ "$jq_output" != "null" && -n "$jq_output" ]]; then
                list="${list}${jq_output},"
+               titles="${titles}${component} "
              else
               echo "No component found for $component"
              fi
@@ -56,9 +58,12 @@ jobs:
              # Wrap list in brackets, remove trailing comma, deduplicate by title
              list="[${list%,}]"
              components=$(echo "$list" | jq -c 'unique_by(.title)')
+             titles=$(echo "$titles" | xargs -n1 | sort -u | tr '\n' ' ')
 
              echo "components=${components}" >> $GITHUB_OUTPUT
-            echo "Detected components: $components"
+             echo "component_titles=${titles}" >> $GITHUB_OUTPUT
+             echo "Detected components: $components"
+             echo "✅ Component titles: $titles"
 
   Build-Changed-Components:
     needs: Changed-Files-JSON
@@ -72,6 +77,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Debug output
+        run: |
+          echo "Raw components: ${{ needs.Changed-Files-JSON.outputs.components }}"
+          echo "Parsed components:"
+          echo '${{ toJson(fromJson(needs.Changed-Files-JSON.outputs.components)) }}'
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -83,12 +93,13 @@ jobs:
         run: mvn clean install -DskipTests
         
   Trigger-Version-Bump:
-    if: ${{ github.event_name == 'pull_request' }}
+    #if: ${{ github.event_name == 'pull_request' }}
     needs: [Changed-Files-JSON, Build-Changed-Components]
     uses: dsidevops2024/ArtifactVersioning/.github/workflows/semantic-PRlabel-Handler.yml@main
     with:
        json_versions: ${{ vars.JSON_VERSIONS }}
-       components: ${{ join(fromJson(needs.Changed-Files-JSON.outputs.components), ' ') }}
+       #components: ${{ join(fromJson(needs.Changed-Files-JSON.outputs.components), ' ') }}
+       components: ${{ needs.Changed-Files-JSON.outputs.component_titles }}
 
   Push-To-Artifactory:
     needs: [Changed-Files-JSON, Build-Changed-Components, Trigger-Version-Bump]
