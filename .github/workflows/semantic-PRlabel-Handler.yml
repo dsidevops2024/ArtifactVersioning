@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: Get changed files between main and PR head
-        if: ${{ !inputs.components }}
+        #if: ${{ !inputs.components }}
         id: changes
         run: |
           git fetch origin ${{ github.event.pull_request.head.ref }}
@@ -59,7 +59,7 @@ jobs:
           #echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
           
       - name: Extract changed components
-        if: ${{ !inputs.components }}
+        #if: ${{ !inputs.components }}
         id: components
         shell: bash
         run: |
