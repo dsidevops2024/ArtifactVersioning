@@ -74,7 +74,7 @@ jobs:
           BACKEND_FILES=$(echo "$FILES" | grep '^backend/' || true)
     
           if [ -n "$BACKEND_FILES" ]; then
-             COMPONENTS_JSON="backend-components.json"
+             COMPONENTS_JSON="backend/backend-components.json"
              declare -A MATCHED_BACKEND_COMPONENTS=()
       
              while IFS= read -r file; do
