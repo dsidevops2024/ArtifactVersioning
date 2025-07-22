@@ -4,9 +4,9 @@ on:
   #workflow_dispatch:
   workflow_call:
   push:
-    paths:
-      - 'backend/Receivers/**'
-      - 'backend/Scheduler/**'
+    #paths:
+      #- 'backend/Receivers/**'
+      #- 'backend/Scheduler/**'
 
 jobs:
   Changed-Files-JSON:
