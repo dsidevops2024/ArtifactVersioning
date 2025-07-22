@@ -72,6 +72,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Debug output
+        run: |
+          echo "Raw components: ${{ needs.Changed-Files-JSON.outputs.components }}"
+          echo "Parsed components:"
+          echo '${{ toJson(fromJson(needs.Changed-Files-JSON.outputs.components)) }}'
 
       - name: Set up JDK
         uses: actions/setup-java@v3
