@@ -87,10 +87,15 @@ jobs:
           while IFS= read -r file; do
             echo "🔍 Analyzing backend file: $file"
 
+            #component_title=$(jq -r --arg path "$file" '
+              #map(select(type == "object" and (.srcPath and .title))) |
+              #.[] | select($path | startswith("backend/" + .srcPath)) | .title
+            #' "$COMPONENTS_JSON" || true)
             component_title=$(jq -r --arg path "$file" '
-              map(select(type == "object" and (.srcPath and .title))) |
+              map(select(type == "object" and (.srcPath? | type == "string") and (.title? | type == "string"))) |
               .[] | select($path | startswith("backend/" + .srcPath)) | .title
-            ' "$COMPONENTS_JSON" || true)
+            ' "$COMPONENTS_JSON")
+
 
             if [ -n "$component_title" ]; then
               MATCHED_BACKEND_COMPONENTS["$component_title"]=1
