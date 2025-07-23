@@ -98,6 +98,7 @@ jobs:
 
 
             if [ -n "$component_title" ]; then
+              echo "✅ Matched component: $component_title"
               MATCHED_BACKEND_COMPONENTS["$component_title"]=1
             fi
             done <<< "$BACKEND_FILES"
