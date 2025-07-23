@@ -66,49 +66,57 @@ jobs:
           FILES="${{ steps.changes.outputs.files }}"
           COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
           COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" { print $1 }' | sort -u || true)
+          COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" && $1 != "backend" { print $1 }' | sort -u || true)
 
           COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
 
-          # --- New logic for backend components from backend-components.json ---
-          # Filter backend files only
+          # --- New logic: extract backend components from backend-components.json ---
           BACKEND_FILES=$(echo "$FILES" | grep '^backend/' || true)
-    
-          if [ -n "$BACKEND_FILES" ]; then
-             COMPONENTS_JSON="backend/backend-components.json"
-             declare -A MATCHED_BACKEND_COMPONENTS=()
-      
-             while IFS= read -r file; do
-                #component_title=$(jq -r --arg path "$file" '
-                  #.[] | select($path | startswith("backend/" + .srcPath)) | .title
-                #' "$COMPONENTS_JSON")
-                component_title=$(jq -r --arg path "$file" '
-                  map(select(type == "object" and (.srcPath != null))) |
-                  .[] | select($path | startswith("backend/" + .srcPath)) | .title
-                ' "$COMPONENTS_JSON")
 
-                if [ -n "$component_title" ]; then
-                  MATCHED_BACKEND_COMPONENTS["$component_title"]=1
-                fi
-             done <<< "$BACKEND_FILES"
-      
-             BACKEND_COMPONENTS=$(printf "%s\n" "${!MATCHED_BACKEND_COMPONENTS[@]}" | sort | tr '\n' ' ')
-      
-             # Append backend components to COMPONENTS if any found
-             if [ -n "$BACKEND_COMPONENTS" ]; then
-               COMPONENTS="$COMPONENTS $BACKEND_COMPONENTS"
-             fi
+          if [ -n "$BACKEND_FILES" ]; then
+            COMPONENTS_JSON="backend/backend-components.json"
+
+            # Optional: Validate JSON before parsing
+            if ! jq empty "$COMPONENTS_JSON"; then
+              echo "❌ Invalid JSON in $COMPONENTS_JSON"
+              exit 1
+            fi
+
+          declare -A MATCHED_BACKEND_COMPONENTS=()
+
+          while IFS= read -r file; do
+            echo "🔍 Analyzing backend file: $file"
+
+            component_title=$(jq -r --arg path "$file" '
+              map(select(type == "object" and (.srcPath and .title))) |
+              .[] | select($path | startswith("backend/" + .srcPath)) | .title
+            ' "$COMPONENTS_JSON" || true)
+
+            if [ -n "$component_title" ]; then
+              MATCHED_BACKEND_COMPONENTS["$component_title"]=1
+            fi
+            done <<< "$BACKEND_FILES"
+
+            # Get unique backend component names
+            BACKEND_COMPONENTS=$(printf "%s\n" "${!MATCHED_BACKEND_COMPONENTS[@]}" | sort | tr '\n' ' ')
+
+            # Append backend components to overall list
+            if [ -n "$BACKEND_COMPONENTS" ]; then
+              COMPONENTS="$COMPONENTS $BACKEND_COMPONENTS"
+            fi
           fi
 
+          # Final cleanup and deduplication
           COMPONENTS=$(echo "$COMPONENTS" | xargs -n1 | sort -u | tr '\n' ' ')
 
           if [[ -z "$COMPONENTS" ]]; then
-            echo "No components changed. Exiting."
+            echo "⚠️ No components changed. Exiting."
             exit 1
           fi
 
           echo "✅ Detected components: $COMPONENTS"
-          echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"  
-          
+          echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
+                  
       - name: Parse bump type from PR labels
         if: github.event_name == 'pull_request'
         id: bump
