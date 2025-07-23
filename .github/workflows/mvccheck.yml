@@ -1,0 +1,40 @@
+name: mvccheck
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'mvc/**'
+      - '.github/workflows/ci-mvc.yml'
+
+jobs:
+  versioning:
+    uses: ./.github/workflows/versioning-core.yml
+    with:
+      component: mvc
+    secrets: inherit  # So GITHUB_TOKEN and others are passed
+
+  mvc-build:
+    needs: versioning
+    runs-on: mvc
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # ✅ Use the version from previous job
+      - name: Set build version
+        run: echo "BUILD_VERSION=${{ needs.versioning.outputs.build_version }}" >> $GITHUB_ENV
+
+      # ⬇️ Your existing build steps...
+
+      - name: Push artifact to Artifactory
+        uses: SphereTechSol/sphere-shared-actions/.github/actions/artifactory-push-curl@main
+        with:
+          repo-path: sb-dev-generic-local/${{ github.ref_name }}/${{ env.BUILD_VERSION }}/mvc
+          binary-name: SPHEREboard.zip
+          source-directory: .
+          windows-or-linux: windows
+          ARTIFACTORY_ACCESS_TOKEN_NAME: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN_NAME }}
+          ARTIFACTORY_ACCESS_TOKEN_VALUE: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN_VALUE }}
