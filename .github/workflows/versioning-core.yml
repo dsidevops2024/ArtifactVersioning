@@ -1,0 +1,76 @@
+name: versioning-core
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        description: "Component name (e.g., mvc, api, etc.)"
+        required: true
+        type: string
+    outputs:
+      build_version:
+        description: "Bumped or timestamped version"
+        value: ${{ jobs.get-version.outputs.build_version }}
+
+jobs:
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      build_version: ${{ steps.setver.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get merged PR for current commit
+        id: pr_info
+        run: |
+          echo "🔍 Trying to find PR for commit $GITHUB_SHA"
+          PR_JSON=$(gh pr list --base main --state merged --json number,labels,mergeCommit --jq \
+            ".[] | select(.mergeCommit.oid == \"${GITHUB_SHA}\")")
+
+          if [[ -z "$PR_JSON" ]]; then
+            echo "⚠️ No merged PR found. Using timestamp version."
+            echo "version=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "$PR_JSON" > pr.json
+          LABELS=$(jq -r '.labels[].name' pr.json || true)
+          echo "✅ Labels: $LABELS"
+
+          # Determine bump type from labels
+          TYPE=""
+          if echo "$LABELS" | grep -q "semver:major"; then
+            TYPE="major"
+          elif echo "$LABELS" | grep -q "semver:minor"; then
+            TYPE="minor"
+          elif echo "$LABELS" | grep -q "semver:patch"; then
+            TYPE="patch"
+          fi
+
+          if [[ -z "$TYPE" ]]; then
+            echo "⚠️ No semver label found. Using timestamp version."
+            echo "version=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          COMPONENT="${{ inputs.component }}"
+          CURRENT=$(jq -r --arg c "$COMPONENT" '.[$c]' <<< '${{ vars.JSON_VERSIONS }}')
+          if [[ "$CURRENT" == "null" ]]; then
+            echo "⚠️ No version found for component $COMPONENT. Using timestamp version."
+            echo "version=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          case "$TYPE" in
+            major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+            minor) ((MINOR+=1)); PATCH=0 ;;
+            patch) ((PATCH+=1)) ;;
+          esac
+          VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "✅ Bumped $COMPONENT version to $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
