@@ -76,34 +76,30 @@ jobs:
           if [ -n "$BACKEND_FILES" ]; then
             COMPONENTS_JSON="backend/backend-components.json"
 
-            # Optional: Validate JSON before parsing
+          # Validate JSON
             if ! jq empty "$COMPONENTS_JSON"; then
               echo "❌ Invalid JSON in $COMPONENTS_JSON"
               exit 1
             fi
 
-          declare -A MATCHED_BACKEND_COMPONENTS=()
+            declare -A MATCHED_BACKEND_COMPONENTS=()
 
-          while IFS= read -r file; do
-            echo "🔍 Analyzing backend file: $file"
+            while IFS= read -r file; do
+              echo "🔍 Analyzing backend file: $file"
 
-            #component_title=$(jq -r --arg path "$file" '
-              #map(select(type == "object" and (.srcPath and .title))) |
-              #.[] | select($path | startswith("backend/" + .srcPath)) | .title
-            #' "$COMPONENTS_JSON" || true)
-            component_title=$(jq -r --arg path "$file" '
-              map(select(type == "object" and (.srcPath? | type == "string") and (.title? | type == "string"))) |
-              .[] | select($path | startswith("backend/" + .srcPath)) | .title
-            ' "$COMPONENTS_JSON")
+              TITLES=$(jq -r '.[].title' "$COMPONENTS_JSON")
 
+              for title in $TITLES; do
+                if [[ "$file" == *"$title"* ]]; then
+                  echo "✅ Matched component title '$title' in file path"
+                  MATCHED_BACKEND_COMPONENTS["$title"]=1
+                fi
+              done
+            done <<< "$FILES"
 
-            if [ -n "$component_title" ]; then
-              MATCHED_BACKEND_COMPONENTS["$component_title"]=1
-            fi
-            done <<< "$BACKEND_FILES"
-
-            # Get unique backend component names
-            BACKEND_COMPONENTS=$(printf "%s\n" "${!MATCHED_BACKEND_COMPONENTS[@]}" | sort | tr '\n' ' ')
+            # Join all matched titles
+            BACKEND_COMPONENTS=$(printf "%s\n" "${!MATCHED_BACKEND_COMPONENTS[@]}" | sort -u | tr '\n' ' ')
+            echo "📦 Matched backend components: $BACKEND_COMPONENTS"
 
             # Append backend components to overall list
             if [ -n "$BACKEND_COMPONENTS" ]; then
