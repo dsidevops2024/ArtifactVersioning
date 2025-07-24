@@ -44,9 +44,9 @@ jobs:
           echo "MVC_VERSION=$MVC_VERSION" >> $GITHUB_ENV
 
           if [[ "${{ github.ref_name }}" == "main" ]]; then
-            REPO_PATH="sb-dev-generic-local/${{ github.ref_name }}/$MVC_VERSION/mvc"
+            REPO_PATH="sb-dev-generic-local/${{ github.base_ref }}/$MVC_VERSION/mvc"
           else
-            REPO_PATH="sb-dev-generic-local/${{ github.ref_name }}/mvc"
+            REPO_PATH="sb-dev-generic-local/${{ github.head_ref }}/mvc"
           fi
 
           echo "Using repo path: $REPO_PATH"
