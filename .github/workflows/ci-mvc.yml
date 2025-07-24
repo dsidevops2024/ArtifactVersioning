@@ -4,6 +4,10 @@ on:
   #pull_request:
     #types: [closed]
   workflow_call:
+    inputs:
+      version_json:
+        required: true
+        type: string
   push:
     paths:
       - ".github/workflows/ci-mvc.yml"
@@ -29,26 +33,44 @@ jobs:
 
       - name: Run tests
         run: mvn test
-        
-      - name: Determine artifact path
-        id: path
-        run: |
-          COMPONENT="mvc"
-          BRANCH="${GITHUB_REF#refs/heads/}"
 
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$BRANCH" == "main" ]]; then
-            VERSION=$(echo '${{ vars.JSON_VERSIONS }}' | jq -r --arg c "$COMPONENT" '.[$c]')
-            if [ "$VERSION" == "null" ] || [ -z "$VERSION" ]; then
-              echo "❌ No version found for $COMPONENT in main"
-              exit 1
-            fi
-            echo "✅ Main branch: version path"
-            echo "📦 VERSION for $COMPONENT: $VERSION"
-            echo "path=org/$COMPONENT/$VERSION/" >> "$GITHUB_OUTPUT"
+      - name: Extract MVC version from version_json input
+        id: extract_version
+        shell: bash
+        run: |
+          echo '${{ inputs.version_json }}' > version.json
+          MVC_VERSION=$(jq -r '.mvc' version.json)
+          echo "✅ Extracted MVC version: $MVC_VERSION"
+          echo "MVC_VERSION=$MVC_VERSION" >> $GITHUB_ENV
+
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            REPO_PATH="sb-dev-generic-local/${{ github.ref_name }}/$MVC_VERSION/mvc"
           else
-            echo "✅ Dev/feature branch: fallback path"
-            echo "path=org/$COMPONENT/$BRANCH/latest/" >> "$GITHUB_OUTPUT"
+            REPO_PATH="sb-dev-generic-local/${{ github.ref_name }}/mvc"
           fi
+
+          echo "Using repo path: $REPO_PATH"
+          echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+        
+      #- name: Determine artifact path
+        #id: path
+        #run: |
+          #COMPONENT="mvc"
+          #BRANCH="${GITHUB_REF#refs/heads/}"
+
+          #if [[ "$GITHUB_EVENT_NAME" == "push" && "$BRANCH" == "main" ]]; then
+            #VERSION=$(echo '${{ vars.JSON_VERSIONS }}' | jq -r --arg c "$COMPONENT" '.[$c]')
+            #if [ "$VERSION" == "null" ] || [ -z "$VERSION" ]; then
+              #echo "❌ No version found for $COMPONENT in main"
+              #exit 1
+            #fi
+            #echo "✅ Main branch: version path"
+            #echo "📦 VERSION for $COMPONENT: $VERSION"
+            #echo "path=org/$COMPONENT/$VERSION/" >> "$GITHUB_OUTPUT"
+          #else
+            #echo "✅ Dev/feature branch: fallback path"
+            #echo "path=org/$COMPONENT/$BRANCH/latest/" >> "$GITHUB_OUTPUT"
+          #fi
           
       #- name: Bump versions mvc
         #id: bump
@@ -62,3 +84,11 @@ jobs:
       - name: Push artifact to Artifactory (placeholder)
         run: |
           echo "Pushing artifact to Artifactory..." 
+          echo "Repo path: $REPO_PATH"
+          
+      - name: Update version variable after successful push
+        if: success()
+        run: |
+          gh variable set JSON_VERSIONS --body "${{ inputs.version_json }}" --org your-org-name --visibility all
+        env:
+          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
