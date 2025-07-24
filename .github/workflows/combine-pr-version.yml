@@ -13,6 +13,7 @@ jobs:
 
     outputs:
       updated_json: ${{ steps.bump_json.outputs.updated_json }}
+      components: ${{ steps.components.outputs.components }}
 
     steps:
       - name: Checkout repo
@@ -133,17 +134,29 @@ jobs:
           FINAL_JSON=$(jq -c . < tmp.json)
           echo "✅ Final bumped JSON: $FINAL_JSON"
           echo "updated_json=$FINAL_JSON" >> "$GITHUB_OUTPUT"
-
-  upload:
+  ci-mvc:
     needs: bump-json-versions
-    runs-on: ubuntu-latest
-    steps:
-      - name: Write semver bumps
-        run: |
-          echo '${{ needs.bump-json-versions.outputs.updated_json }}'
+    if: contains(needs.bump-json-versions.outputs.components, 'mvc')
+    uses: ./.github/workflows/ci-mvc.yml
+    with:
+      version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
 
-      - name: Save bumped versions to GitHub variable
-        run: |
-          gh variable set JSON_VERSIONS --body '${{ needs.bump-json-versions.outputs.updated_json }}' --org dsidevops2024 --visibility all
-        env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+  ci-sphereengine:
+    needs: bump-json-versions
+    if: contains(needs.bump-json-versions.outputs.components, 'sphereengine')
+    uses: ./.github/workflows/ci-sphereengine.yml
+    with:
+      version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
+  #upload:
+    #needs: bump-json-versions
+    #runs-on: ubuntu-latest
+    #steps:
+      #- name: Write semver bumps
+        #run: |
+          #echo '${{ needs.bump-json-versions.outputs.updated_json }}'
+
+      #- name: Save bumped versions to GitHub variable
+        #run: |
+          #gh variable set JSON_VERSIONS --body '${{ needs.bump-json-versions.outputs.updated_json }}' --org dsidevops2024 --visibility all
+        #env:
+          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
