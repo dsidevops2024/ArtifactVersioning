@@ -86,9 +86,9 @@ jobs:
           echo "Pushing artifact to Artifactory..." 
           echo "Repo path: $REPO_PATH"
           
-      - name: Update version variable after successful push
-        if: success()
-        run: |
-          gh variable set JSON_VERSIONS --body "${{ inputs.version_json }}" --org dsidevops2024 --visibility all
-        env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+      #- name: Update version variable after successful push
+        #if: success()
+        #run: |
+          #gh variable set JSON_VERSIONS --body "${{ inputs.version_json }}" --org dsidevops2024 --visibility all
+        #env:
+          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
