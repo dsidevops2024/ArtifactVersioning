@@ -1,0 +1,149 @@
+name: pr-versioning
+
+on:
+  pull_request:
+    types: [labeled]
+    branches:
+      - main
+
+jobs:
+  bump-json-versions:
+    if: github.base_ref == 'main' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    outputs:
+      updated_json: ${{ steps.bump_json.outputs.updated_json }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files between main and PR head
+        id: changes
+        run: |
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          MERGE_BASE=$(git merge-base origin/main origin/${{ github.event.pull_request.head.ref }})
+          FILES=$(git diff --name-only "$MERGE_BASE" origin/${{ github.event.pull_request.head.ref }})
+
+          echo "$FILES"
+          {
+            echo 'files<<EOF'
+            echo "$FILES"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Extract changed components
+        id: components
+        shell: bash
+        run: |
+          FILES="${{ steps.changes.outputs.files }}"
+          COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
+          COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" && $1 != "backend" { print $1 }' | sort -u || true)
+          COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
+
+          BACKEND_FILES=$(echo "$FILES" | grep '^backend/' || true)
+          if [ -n "$BACKEND_FILES" ]; then
+            COMPONENTS_JSON="backend/backend-components.json"
+            if ! jq empty "$COMPONENTS_JSON"; then
+              echo "❌ Invalid JSON in $COMPONENTS_JSON"
+              exit 1
+            fi
+
+            declare -A MATCHED_BACKEND_COMPONENTS=()
+            while IFS= read -r file; do
+              TITLES=$(jq -r '.[].title' "$COMPONENTS_JSON")
+              for title in $TITLES; do
+                if [[ "$file" == *"$title"* ]]; then
+                  MATCHED_BACKEND_COMPONENTS["$title"]=1
+                fi
+              done
+            done <<< "$FILES"
+
+            BACKEND_COMPONENTS=$(printf "%s\n" "${!MATCHED_BACKEND_COMPONENTS[@]}" | sort -u | tr '\n' ' ')
+            if [ -n "$BACKEND_COMPONENTS" ]; then
+              COMPONENTS="$COMPONENTS $BACKEND_COMPONENTS"
+            fi
+          fi
+
+          COMPONENTS=$(echo "$COMPONENTS" | xargs -n1 | sort -u | tr '\n' ' ')
+          if [[ -z "$COMPONENTS" ]]; then
+            echo "⚠️ No components changed. Exiting."
+            exit 1
+          fi
+
+          echo "✅ Detected components: $COMPONENTS"
+          echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
+
+      - name: Parse bump type from PR labels
+        id: bump
+        run: |
+          echo "Extracting labels..."
+          LABELS_JSON='${{ toJson(github.event.pull_request.labels) }}'
+          echo "$LABELS_JSON"
+
+          LABELS=$(jq -r '.[].name' <<< "$LABELS_JSON")
+          echo "Labels found: $LABELS"
+
+          TYPE=""
+          if echo "$LABELS" | grep -q "semver:major"; then
+            TYPE="major"
+          elif echo "$LABELS" | grep -q "semver:minor"; then
+            TYPE="minor"
+          elif echo "$LABELS" | grep -q "semver:patch"; then
+            TYPE="patch"
+          else
+            echo "❌ No valid semver label found (major, minor, patch)."
+            exit 1
+          fi
+
+          echo "✅ Bump type: $TYPE"
+          echo "type=$TYPE" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version in JSON
+        id: bump_json
+        run: |
+          COMPONENTS="${{ steps.components.outputs.components }}"
+          BUMP_TYPE="${{ steps.bump.outputs.type }}"
+          echo '${{ vars.JSON_VERSIONS }}' > versions.json
+          jq '.' versions.json > tmp.json
+
+          for COMP in $COMPONENTS; do
+            CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
+            if [ "$CURRENT" == "null" ]; then
+              echo "Component $COMP not found. Skipping."
+              continue
+            fi
+
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+            case "$BUMP_TYPE" in
+              major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+              minor) ((MINOR+=1)); PATCH=0 ;;
+              patch) ((PATCH+=1)) ;;
+            esac
+
+            NEW="$MAJOR.$MINOR.$PATCH"
+            echo "🔧 $COMP bumped to $NEW"
+            tmpfile=$(mktemp)
+            jq --arg c "$COMP" --arg v "$NEW" '.[$c]=$v' tmp.json > "$tmpfile" && mv "$tmpfile" tmp.json
+          done
+
+          FINAL_JSON=$(jq -c . < tmp.json)
+          echo "✅ Final bumped JSON: $FINAL_JSON"
+          echo "updated_json=$FINAL_JSON" >> "$GITHUB_OUTPUT"
+
+  upload:
+    needs: bump-json-versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write semver bumps
+        run: |
+          echo '${{ needs.bump-json-versions.outputs.updated_json }}'
+
+      - name: Save bumped versions to GitHub variable
+        run: |
+          gh variable set JSON_VERSIONS --body '${{ needs.bump-json-versions.outputs.updated_json }}' --org dsidevops2024 --visibility all
+        env:
+          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
