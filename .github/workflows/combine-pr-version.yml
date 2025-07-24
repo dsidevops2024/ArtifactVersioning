@@ -1,4 +1,4 @@
-name: pr-versioning
+name: combine-pr-version
 
 on:
   pull_request:
