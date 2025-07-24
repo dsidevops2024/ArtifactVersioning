@@ -2,8 +2,8 @@ name: mvccheck
 
 on:
   push:
-    branches:
-      - '**'
+    #branches:
+      #- '**'
     paths:
       - 'mvc/**'
       - '.github/workflows/ci-mvccheck.yml'
