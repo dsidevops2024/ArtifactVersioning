@@ -89,6 +89,6 @@ jobs:
       - name: Update version variable after successful push
         if: success()
         run: |
-          gh variable set JSON_VERSIONS --body "${{ inputs.version_json }}" --org your-org-name --visibility all
+          gh variable set JSON_VERSIONS --body "${{ inputs.version_json }}" --org dsidevops2024 --visibility all
         env:
           GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
