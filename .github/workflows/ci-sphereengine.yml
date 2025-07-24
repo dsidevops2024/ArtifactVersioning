@@ -4,6 +4,10 @@ on:
   #pull_request:
     #types: [closed]
   workflow_call:
+    inputs:
+      version_json:
+        required: true
+        type: string
   push:
     paths:
       - ".github/workflows/ci-sphereengine.yml"
