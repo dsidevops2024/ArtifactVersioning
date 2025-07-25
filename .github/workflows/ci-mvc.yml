@@ -28,7 +28,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven check1
+      - name: Build with Maven check2
         run: mvn clean install
 
       - name: Run tests
@@ -43,7 +43,7 @@ jobs:
           echo "✅ Extracted MVC version: $MVC_VERSION"
           echo "MVC_VERSION=$MVC_VERSION" >> $GITHUB_ENV
 
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
+          if [[ "${{ github.base_ref }}" == "main" ]]; then
             REPO_PATH="sb-dev-generic-local/${{ github.base_ref }}/$MVC_VERSION/mvc"
           else
             REPO_PATH="sb-dev-generic-local/${{ github.head_ref }}/mvc"
