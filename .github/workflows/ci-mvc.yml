@@ -28,7 +28,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven check2
+      - name: Build with Maven check3
         run: mvn clean install
 
       - name: Run tests
@@ -37,21 +37,35 @@ jobs:
       - name: Extract MVC version from version_json input
         id: extract_version
         shell: bash
+        env:
+          VERSION_JSON: ${{ inputs.version_json }}
+          REF_NAME: ${{ github.ref_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          echo '${{ inputs.version_json }}' > version.json
+          echo "$VERSION_JSON" > version.json
           MVC_VERSION=$(jq -r '.mvc' version.json)
           echo "✅ Extracted MVC version: $MVC_VERSION"
           echo "MVC_VERSION=$MVC_VERSION" >> $GITHUB_ENV
 
-          if [[ "${{ github.base_ref }}" == "main" ]]; then
-            REPO_PATH="sb-dev-generic-local/${{ github.base_ref }}/$MVC_VERSION/mvc"
+          # Determine if this is a PR targeting main or a push to main
+          if [[ "$REF_NAME" == "main" || "$BASE_REF" == "main" ]]; then
+            BRANCH_PATH="main"
+          elif [[ -n "$HEAD_REF" ]]; then
+            BRANCH_PATH="$HEAD_REF"
           else
-            REPO_PATH="sb-dev-generic-local/${{ github.head_ref }}/mvc"
+            BRANCH_PATH="$REF_NAME"
+          fi
+
+          if [[ "$BRANCH_PATH" == "main" ]]; then
+            REPO_PATH="sb-dev-generic-local/main/$MVC_VERSION/mvc"
+          else
+            REPO_PATH="sb-dev-generic-local/$BRANCH_PATH/mvc"
           fi
 
           echo "Using repo path: $REPO_PATH"
           echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-        
+          
       #- name: Determine artifact path
         #id: path
         #run: |
