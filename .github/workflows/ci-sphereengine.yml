@@ -30,7 +30,7 @@ jobs:
       - name: Build with Maven check5
         run: mvn clean install
 
-      - name: Extract MVC version from version_json input
+      - name: Extract SPHEREENGINE version from version_json input
         id: extract_version
         shell: bash
         env:
