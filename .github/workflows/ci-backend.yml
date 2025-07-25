@@ -3,6 +3,10 @@ name: ci-backend
 on:
   #workflow_dispatch:
   workflow_call:
+    inputs:
+      version_json:
+        required: true
+        type: string
   push:
     paths:
       - 'backend/Receivers/**'
