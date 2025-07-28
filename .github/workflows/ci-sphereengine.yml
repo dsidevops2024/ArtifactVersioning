@@ -8,6 +8,9 @@ on:
       version_json:
         required: true
         type: string
+    secrets: 
+      AVPAT_TOKEN:
+        required: true
   push:
     paths:
       - ".github/workflows/ci-sphereengine.yml"
