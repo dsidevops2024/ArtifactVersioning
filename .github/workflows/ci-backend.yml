@@ -101,16 +101,25 @@ jobs:
         shell: bash
         env:
           VERSION_JSON: ${{ inputs.version_json }}
+          COMPONENT_TITLE: ${{ matrix.component.title }}
           REF_NAME: ${{ github.ref_name }}
           BASE_REF: ${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
         run: |
           echo "$VERSION_JSON" > version.json
-          MVC_VERSION=$(jq -r '.mvc' version.json)
-          echo "✅ Extracted MVC version: $MVC_VERSION"
-          echo "MVC_VERSION=$MVC_VERSION" >> $GITHUB_ENV
 
-          # Determine if this is a PR targeting main or a push to main
+          # Extract version for the current component from the flat JSON
+          COMP_VERSION=$(jq -r --arg comp "$COMPONENT_TITLE" '.[$comp] // empty' version.json)
+
+          #if [[ -z "$COMP_VERSION" ]]; then
+            #echo "⚠️ Version for component '$COMPONENT_TITLE' not found, defaulting to 'latest'"
+            #COMP_VERSION="latest"
+          #fi
+
+          echo "✅ Extracted version for component '$COMPONENT_TITLE': $COMP_VERSION"
+          echo "COMPONENT_VERSION=$COMP_VERSION" >> $GITHUB_ENV
+
+          # Determine branch path
           if [[ "$REF_NAME" == "main" || "$BASE_REF" == "main" ]]; then
             BRANCH_PATH="main"
           elif [[ -n "$HEAD_REF" ]]; then
@@ -120,14 +129,14 @@ jobs:
           fi
 
           if [[ "$BRANCH_PATH" == "main" ]]; then
-            REPO_PATH="sb-dev-generic-local/main/$MVC_VERSION/mvc"
+            REPO_PATH="sb-dev-generic-local/main/$COMP_VERSION/$COMPONENT_TITLE"
           else
-            REPO_PATH="sb-dev-generic-local/$BRANCH_PATH/mvc"
+            REPO_PATH="sb-dev-generic-local/$BRANCH_PATH/$COMPONENT_TITLE"
           fi
 
           echo "Using repo path: $REPO_PATH"
           echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-
+          
       - name: Push artifact to Artifactory (placeholder)
         run: |
           echo "Pushing artifact to Artifactory..." 
