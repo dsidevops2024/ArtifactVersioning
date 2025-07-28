@@ -8,6 +8,9 @@ on:
       version_json:
         required: true
         type: string
+    secrets: 
+      AVPAT_TOKEN:
+        required: true
   push:
     paths:
       - ".github/workflows/ci-mvc.yml"
@@ -28,7 +31,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven check4
+      - name: Build with Maven check5
         run: mvn clean install
 
       - name: Run tests
