@@ -140,6 +140,8 @@ jobs:
     uses: ./.github/workflows/ci-mvc.yml
     with:
       version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
+    secrets:
+      AVPAT_TOKEN: ${{ secrets.AVPAT_TOKEN }}
 
   ci-sphereengine:
     needs: bump-json-versions
@@ -147,6 +149,8 @@ jobs:
     uses: ./.github/workflows/ci-sphereengine.yml
     with:
       version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
+    secrets:
+      AVPAT_TOKEN: ${{ secrets.AVPAT_TOKEN }}
 
   #ci-backend:
     #needs: bump-json-versions
