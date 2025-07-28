@@ -1,17 +1,21 @@
 name: combine-pr-version
 
 on:
-  pull_request_review:
-    types: [submitted]
+  #pull_request_review:
+    #types: [submitted]
   #pull_request:
     #types: [labeled]
     #branches:
       #- main
-
+   pull_request_target:
+    branches:
+      - main
+      
 jobs:
   bump-json-versions:
-    if: github.event.pull_request.base.ref == 'main' && github.event.review.state == 'approved'
+    #if: github.event.pull_request.base.ref == 'main' && github.event.review.state == 'approved'
     #if: github.base_ref == 'main' && github.event.pull_request.draft == false
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     outputs:
