@@ -104,7 +104,7 @@ jobs:
         if: github.event_name != 'push'
         run: |
           # Fetch existing version JSON
-          EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --visibility all --json value -q .value)
+          EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
           echo "$EXISTING" > existing.json
           echo '${{ inputs.version_json }}' > update.json
 
