@@ -96,19 +96,48 @@ jobs:
       - name: Build with Maven
         run: mvn clean install -DskipTests
         
-  #Trigger-Version-Bump:
-    #if: ${{ github.event_name == 'pull_request' }}
-    #needs: [Changed-Files-JSON, Build-Changed-Components]
-    #uses: dsidevops2024/ArtifactVersioning/.github/workflows/semantic-PRlabel-Handler.yml@main
-    #with:
-       #json_versions: ${{ vars.JSON_VERSIONS }}
-       #components: ${{ join(fromJson(needs.Changed-Files-JSON.outputs.components), ' ') }}
-       #components: ${{ needs.Changed-Files-JSON.outputs.component_titles }}
+      - name: Extract backend comp version from version_json input
+        id: extract_version
+        shell: bash
+        env:
+          VERSION_JSON: ${{ inputs.version_json }}
+          COMPONENT_TITLE: ${{ matrix.component.title }}
+          REF_NAME: ${{ github.ref_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "$VERSION_JSON" > version.json
 
-  #Push-To-Artifactory:
-    #needs: [Changed-Files-JSON, Build-Changed-Components, Trigger-Version-Bump]
-    #runs-on: ubuntu-latest
-    #steps:
-      #- name: Push backend comp to Artifactory (placeholder)
-        #run: |
-          #echo "Pushing backend artifact to Artifactory..."
+          # Extract version for the current component from the flat JSON
+          COMP_VERSION=$(jq -r --arg comp "$COMPONENT_TITLE" '.[$comp] // empty' version.json)
+
+          #if [[ -z "$COMP_VERSION" ]]; then
+            #echo "⚠️ Version for component '$COMPONENT_TITLE' not found, defaulting to 'latest'"
+            #COMP_VERSION="latest"
+          #fi
+
+          echo "✅ Extracted version for component '$COMPONENT_TITLE': $COMP_VERSION"
+          echo "COMPONENT_VERSION=$COMP_VERSION" >> $GITHUB_ENV
+
+          # Determine branch path
+          if [[ "$REF_NAME" == "main" || "$BASE_REF" == "main" ]]; then
+            BRANCH_PATH="main"
+          elif [[ -n "$HEAD_REF" ]]; then
+            BRANCH_PATH="$HEAD_REF"
+          else
+            BRANCH_PATH="$REF_NAME"
+          fi
+
+          if [[ "$BRANCH_PATH" == "main" ]]; then
+            REPO_PATH="sb-dev-generic-local/main/$COMP_VERSION/$COMPONENT_TITLE"
+          else
+            REPO_PATH="sb-dev-generic-local/$BRANCH_PATH/$COMPONENT_TITLE"
+          fi
+
+          echo "Using repo path: $REPO_PATH"
+          echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+          
+      - name: Push artifact to Artifactory (placeholder)
+        run: |
+          echo "Pushing artifact to Artifactory..." 
+          echo "Repo path: $REPO_PATH"

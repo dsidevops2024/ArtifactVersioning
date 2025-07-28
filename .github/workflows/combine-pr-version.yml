@@ -148,12 +148,12 @@ jobs:
     with:
       version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
 
-  ci-backend:
-    needs: bump-json-versions
-    if: contains(needs.bump-json-versions.outputs.components, 'backend/*')
-    uses: ./.github/workflows/ci-backend.yml
-    with:
-      version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
+  #ci-backend:
+    #needs: bump-json-versions
+    #if: contains(needs.bump-json-versions.outputs.components, 'backend/*')
+    #uses: ./.github/workflows/ci-backend.yml
+    #with:
+      #version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
   #upload:
     #needs: bump-json-versions
     #runs-on: ubuntu-latest
