@@ -135,7 +135,12 @@ jobs:
           
           echo "✅ Final bumped JSON: $FINAL_JSON"
           echo "updated_json=$FINAL_JSON" >> "$GITHUB_OUTPUT"
-          
+
+      - name: Check version.json exists
+        run: |
+          ls -la ./version.json
+          cat ./version.json
+
       - name: Upload version.json as artifact
         uses: actions/upload-artifact@v4
         with:
