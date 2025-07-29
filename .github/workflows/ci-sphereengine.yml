@@ -71,8 +71,8 @@ jobs:
           EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
           echo "$EXISTING" > existing.json
 
-          VERSION=$(jq -r '.mvc' ./version-data/version.json)
-          echo "{\"mvc\":\"$VERSION\"}" > update.json
+          VERSION=$(jq -r '.sphereengine' ./version-data/version.json)
+          echo "{\"sphereengine\":\"$VERSION\"}" > update.json
 
           MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
 
