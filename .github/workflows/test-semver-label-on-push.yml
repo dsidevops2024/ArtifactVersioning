@@ -16,9 +16,8 @@ jobs:
           fetch-depth: 0
 
       - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.AVPAT_TOKEN }}
-        run: echo "${GITHUB_TOKEN}" | gh auth login --with-token
+        run: |
+           gh auth login --with-token <<< "${{ secrets.AVPAT_TOKEN }}"
 
       - name: Detect bump type from merged PR labels
         id: bump_type
