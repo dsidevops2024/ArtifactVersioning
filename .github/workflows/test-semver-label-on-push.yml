@@ -1,0 +1,65 @@
+name: test-semver-label-on-push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  detect-bump-type:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Authenticate GitHub CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+        run: echo "${GITHUB_TOKEN}" | gh auth login --with-token
+
+      - name: Detect bump type from merged PR labels
+        id: bump_type
+        env:
+          GITHUB_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          echo "Looking for merged PRs containing commit $COMMIT_SHA..."
+          PR_NUMBERS=$(gh pr list --state merged --search "$COMMIT_SHA" --json number --jq '.[].number')
+
+          if [ -z "$PR_NUMBERS" ]; then
+            echo "❌ No merged PR found for commit $COMMIT_SHA"
+            exit 1
+          fi
+
+          echo "Found merged PR(s): $PR_NUMBERS"
+
+          BUMP_TYPE=""
+
+          for pr in $PR_NUMBERS; do
+            LABELS=$(gh pr view $pr --json labels --jq '.labels[].name' || echo "")
+            for label in $LABELS; do
+              case "$label" in
+                semver:major)
+                  BUMP_TYPE="major"
+                  break 2
+                  ;;
+                semver:minor)
+                  [[ "$BUMP_TYPE" != "major" ]] && BUMP_TYPE="minor"
+                  ;;
+                semver:patch)
+                  [[ "$BUMP_TYPE" != "major" && "$BUMP_TYPE" != "minor" ]] && BUMP_TYPE="patch"
+                  ;;
+              esac
+            done
+          done
+
+          if [ -z "$BUMP_TYPE" ]; then
+            echo "❌ No semver label found on merged PR(s). Exiting."
+            exit 1
+          fi
+
+          echo "✅ Bump type detected: $BUMP_TYPE"
+          echo "type=$BUMP_TYPE" >> $GITHUB_OUTPUT
