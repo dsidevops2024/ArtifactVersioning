@@ -32,9 +32,12 @@ jobs:
         uses: dawidd6/action-download-artifact@v3
         with:
           name: version-info
-          path: ./version-data
+          workflow: pr-version-push.yml
           workflow_conclusion: success
-          branch: Semantic-versioning
+          branch: main
+          repo: ${{ github.repository }}
+          path: ./version-data
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           if_no_artifact_found: fail
 
       - name: Determine REPO_PATH
