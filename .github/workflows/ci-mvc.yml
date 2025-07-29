@@ -34,7 +34,7 @@ jobs:
           name: version-info
           path: ./version-data
           workflow_conclusion: success
-          branch: ${{ github.head_ref || github.ref_name }}
+          branch: Semantic-versioning
           if_no_artifact_found: fail
 
       - name: Determine REPO_PATH
