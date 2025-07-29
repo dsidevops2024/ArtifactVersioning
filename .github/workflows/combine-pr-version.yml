@@ -131,6 +131,8 @@ jobs:
           done
 
           FINAL_JSON=$(jq -c . < tmp.json)
+          echo "$FINAL_JSON" > version.json
+          
           echo "✅ Final bumped JSON: $FINAL_JSON"
           echo "updated_json=$FINAL_JSON" >> "$GITHUB_OUTPUT"
           
