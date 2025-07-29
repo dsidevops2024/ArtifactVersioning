@@ -1,16 +1,6 @@
 name: ci-mvc
 
 on:
-  #pull_request:
-    #types: [closed]
-  workflow_call:
-    inputs:
-      version_json:
-        required: true
-        type: string
-    secrets: 
-      AVPAT_TOKEN:
-        required: true
   push:
     paths:
       - ".github/workflows/ci-mvc.yml"
@@ -37,104 +27,56 @@ jobs:
       - name: Run tests
         run: mvn test
 
-      - name: Extract MVC version (from input or GH variable)
-        id: extract_version
-        shell: bash
-        env:
-          VERSION_JSON: ${{ inputs.version_json }}
-          REF_NAME: ${{ github.ref_name }}
-          BASE_REF: ${{ github.base_ref }}
-          HEAD_REF: ${{ github.head_ref }}
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+      - name: Download version-info artifact (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          name: version-info
+          path: ./version-data
+          workflow_conclusion: success
+          branch: main
+
+      - name: Determine REPO_PATH
+        id: repo_path
         run: |
-          if [[ -n "$VERSION_JSON" ]]; then
-            echo "🟢 Using version from workflow input"
-            echo "$VERSION_JSON" > version.json
+          BRANCH_NAME="${GITHUB_REF##*/}"
+          
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            VERSION=$(jq -r '.mvc' ./version-data/version.json)
+
+            if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+              echo "❌ MVC version missing or invalid."
+              exit 1
+            fi
+
+            REPO_PATH="sb-dev-generic-local/main/$VERSION/mvc"
+            echo "✅ Main branch build: version=$VERSION"
           else
-            echo "🟡 No input provided. Fetching version from GitHub variable (JSON_VERSIONS)..."
-            JSON_VERSIONS=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
-            echo "$JSON_VERSIONS" > version.json
+            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
+            echo "🟡 Non-main branch build: version not used"
           fi
 
-          MVC_VERSION=$(jq -r '.mvc' version.json)
-
-          if [[ -z "$MVC_VERSION" || "$MVC_VERSION" == "null" ]]; then
-            echo "❌ Failed to determine MVC version."
-            exit 1
-          fi
-
-            echo "✅ Extracted MVC version: $MVC_VERSION"
-            echo "MVC_VERSION=$MVC_VERSION" >> $GITHUB_ENV
-
-          # Determine branch path
-          if [[ "$REF_NAME" == "main" || "$BASE_REF" == "main" ]]; then
-            BRANCH_PATH="main"
-          elif [[ -n "$HEAD_REF" ]]; then
-            BRANCH_PATH="$HEAD_REF"
-          else
-            BRANCH_PATH="$REF_NAME"
-          fi
-
-          if [[ "$BRANCH_PATH" == "main" ]]; then
-            REPO_PATH="sb-dev-generic-local/main/$MVC_VERSION/mvc"
-          else
-            REPO_PATH="sb-dev-generic-local/$BRANCH_PATH/mvc"
-          fi
-
-          echo "📦 Using repo path: $REPO_PATH"
           echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+          echo "REPO_PATH=$REPO_PATH"
 
-      #- name: Extract MVC version from version_json input
-        #id: extract_version
-        #shell: bash
-        #env:
-          #VERSION_JSON: ${{ inputs.version_json }}
-          #REF_NAME: ${{ github.ref_name }}
-          #BASE_REF: ${{ github.base_ref }}
-          #HEAD_REF: ${{ github.head_ref }}
-        #run: |
-          #echo "$VERSION_JSON" > version.json
-          #MVC_VERSION=$(jq -r '.mvc' version.json)
-          #echo "✅ Extracted MVC version: $MVC_VERSION"
-          #echo "MVC_VERSION=$MVC_VERSION" >> $GITHUB_ENV
-
-          # Determine if this is a PR targeting main or a push to main
-          #if [[ "$REF_NAME" == "main" || "$BASE_REF" == "main" ]]; then
-            #BRANCH_PATH="main"
-          #elif [[ -n "$HEAD_REF" ]]; then
-            #BRANCH_PATH="$HEAD_REF"
-          #else
-            #BRANCH_PATH="$REF_NAME"
-          #fi
-
-          #if [[ "$BRANCH_PATH" == "main" ]]; then
-            #REPO_PATH="sb-dev-generic-local/main/$MVC_VERSION/mvc"
-          #else
-            #REPO_PATH="sb-dev-generic-local/$BRANCH_PATH/mvc"
-          #fi
-
-          #echo "Using repo path: $REPO_PATH"
-          #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-
-      - name: Push artifact to Artifactory (placeholder)
+      - name: Push artifact to Artifactory
         run: |
-          echo "Pushing artifact to Artifactory..." 
+          echo "Pushing artifact to Artifactory..."
           echo "Repo path: $REPO_PATH"
+          # Add actual curl or deploy command here
 
-      - name: Merge updated component version into existing JSON_VERSIONS
-        if: github.event_name != 'push'
-        run: |
-          # Fetch existing version JSON
-          EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
-          echo "$EXISTING" > existing.json
-          echo '${{ inputs.version_json }}' > update.json
+      #- name: Update JSON_VERSIONS GitHub org variable (main only)
+        #if: github.ref == 'refs/heads/main'
+        #run: |
+          #EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
+          #echo "$EXISTING" > existing.json
 
-          # Merge updated keys into the original JSON
-          MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+          #VERSION=$(jq -r '.mvc' ./version-data/version.json)
+          #echo "{\"mvc\":\"$VERSION\"}" > update.json
 
-          echo "✅ Merged JSON: $MERGED"
+          #MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
 
-          # Update the GitHub org variable
-          gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
-        env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+          #echo "✅ Merged version JSON: $MERGED"
+          #gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
+        #env:
+          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
