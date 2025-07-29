@@ -10,15 +10,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout codes
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.AVPAT_TOKEN }}
-        run: echo "${GITHUB_TOKEN}" | gh auth login --with-token
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Detect bump type from merged PR labels
         id: bump_type
