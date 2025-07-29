@@ -117,6 +117,7 @@ jobs:
 
           FINAL=$(jq -c . tmp.json)
           echo "$FINAL" > version.json
+          echo "updated_json=$FINAL"
           echo "updated_json=$FINAL" >> $GITHUB_OUTPUT
 
       - name: Upload version.json
