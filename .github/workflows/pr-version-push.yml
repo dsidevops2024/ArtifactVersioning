@@ -18,10 +18,8 @@ jobs:
           fetch-depth: 0
 
       - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.AVPAT_TOKEN }}
         run: |
-          echo $GITHUB_TOKEN | gh auth login --with-token
+           gh auth login --with-token <<< "${{ secrets.AVPAT_TOKEN }}"
 
       - name: Get merged PR info
         id: pr
