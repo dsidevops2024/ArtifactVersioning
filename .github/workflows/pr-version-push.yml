@@ -61,9 +61,8 @@ jobs:
       - name: Detect changed components
         id: components
         run: |
-          git fetch origin $BASE_REF $HEAD_REF
-          BASE=$(git merge-base origin/$BASE_REF origin/$HEAD_REF)
-          FILES=$(git diff --name-only $BASE origin/$HEAD_REF)
+          git fetch origin main
+          FILES=$(git diff --name-only HEAD^1 HEAD)
 
           echo "$FILES"
           {
@@ -77,6 +76,23 @@ jobs:
           COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
           echo "Detected components: $COMPONENTS"
           echo "components=$COMPONENTS" >> $GITHUB_OUTPUT
+          
+          #git fetch origin $BASE_REF $HEAD_REF
+          #BASE=$(git merge-base origin/$BASE_REF origin/$HEAD_REF)
+          #FILES=$(git diff --name-only $BASE origin/$HEAD_REF)
+
+          #echo "$FILES"
+          #{
+            #echo 'files<<EOF'
+            #echo "$FILES"
+            #echo 'EOF'
+          #} >> "$GITHUB_OUTPUT"
+
+          #COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
+          #COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" && $1 != "backend" { print $1 }' | sort -u || true)
+          #COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
+          #echo "Detected components: $COMPONENTS"
+          #echo "components=$COMPONENTS" >> $GITHUB_OUTPUT
 
       - name: Bump version JSON
         id: bump_json
