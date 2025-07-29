@@ -1,22 +1,13 @@
 name: combine-pr-version
 
 on:
-  #pull_request_review:
-    #types: [submitted]
-  #pull_request:
-    #types: [labeled]
-    #branches:
-      #- main
-   pull_request_target:
-     types: [closed]
-     branches:
-       - main
+  pull_request:
+    types: [labeled]
+    branches:
+      - main
       
 jobs:
   bump-json-versions:
-    #if: github.event.pull_request.base.ref == 'main' && github.event.review.state == 'approved'
-    #if: github.base_ref == 'main' && github.event.pull_request.draft == false
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     outputs:
@@ -142,40 +133,9 @@ jobs:
           FINAL_JSON=$(jq -c . < tmp.json)
           echo "✅ Final bumped JSON: $FINAL_JSON"
           echo "updated_json=$FINAL_JSON" >> "$GITHUB_OUTPUT"
-  ci-mvc:
-    needs: bump-json-versions
-    if: contains(needs.bump-json-versions.outputs.components, 'mvc')
-    uses: ./.github/workflows/ci-mvc.yml
-    with:
-      version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
-    secrets:
-      AVPAT_TOKEN: ${{ secrets.AVPAT_TOKEN }}
-
-  ci-sphereengine:
-    needs: bump-json-versions
-    if: contains(needs.bump-json-versions.outputs.components, 'sphereengine')
-    uses: ./.github/workflows/ci-sphereengine.yml
-    with:
-      version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
-    secrets:
-      AVPAT_TOKEN: ${{ secrets.AVPAT_TOKEN }}
-
-  #ci-backend:
-    #needs: bump-json-versions
-    #if: contains(needs.bump-json-versions.outputs.components, 'backend/*')
-    #uses: ./.github/workflows/ci-backend.yml
-    #with:
-      #version_json: ${{ needs.bump-json-versions.outputs.updated_json }}
-  #upload:
-    #needs: bump-json-versions
-    #runs-on: ubuntu-latest
-    #steps:
-      #- name: Write semver bumps
-        #run: |
-          #echo '${{ needs.bump-json-versions.outputs.updated_json }}'
-
-      #- name: Save bumped versions to GitHub variable
-        #run: |
-          #gh variable set JSON_VERSIONS --body '${{ needs.bump-json-versions.outputs.updated_json }}' --org dsidevops2024 --visibility all
-        #env:
-          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+          
+      - name: Upload version.json as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-info
+          path: version.json
