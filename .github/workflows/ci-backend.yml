@@ -107,24 +107,31 @@ jobs:
         id: repo_path
         run: |
           BRANCH_NAME="${GITHUB_REF##*/}"
-          
+          REPO_PATHS=""
+
           if [[ "$BRANCH_NAME" == "main" ]]; then
-            VERSION=$(jq -r '.$titles' ./version-data/version.json)
+            for title in $titles; do
+               VERSION=$(jq -r --arg key "$title" '.[$key]' ./version-data/version.json)
 
-            if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-              echo "❌ MVC version missing or invalid."
-              exit 1
-            fi
+             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+               echo "❌ Version missing for $title"
+             exit 1
+             fi
 
-            REPO_PATH="sb-dev-generic-local/main/$VERSION/$titles"
-            echo "✅ Main branch build: version=$VERSION"
+             path="sb-dev-generic-local/main/$VERSION/$title"
+             REPO_PATHS="$REPO_PATHS $path"
+             echo "✅ Repo path for $title: $path"
+            done
           else
-            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/$titles"
-            echo "🟡 Non-main branch build: version not used"
+            for title in $titles; do
+              path="sb-dev-generic-local/$BRANCH_NAME/$title"
+              REPO_PATHS="$REPO_PATHS $path"
+              echo "🟡 Non-main branch build path for $title: $path"
+            done
           fi
 
-          echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-          echo "REPO_PATH=$REPO_PATH"
+          echo "REPO_PATHS=$REPO_PATHS" >> $GITHUB_ENV
+          echo "REPO_PATHS=$REPO_PATHS"
 
       - name: Push artifact to Artifactory
         run: |
