@@ -109,7 +109,7 @@ jobs:
           BRANCH_NAME="${GITHUB_REF##*/}"
           
           if [[ "$BRANCH_NAME" == "main" ]]; then
-            VERSION=$(jq -r '.mvc' ./version-data/version.json)
+            VERSION=$(jq -r '.$titles' ./version-data/version.json)
 
             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
               echo "❌ MVC version missing or invalid."
