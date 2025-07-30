@@ -103,33 +103,33 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           if_no_artifact_found: fail
 
-      #- name: Determine REPO_PATH
-        #id: repo_path
-        #run: |
-          #BRANCH_NAME="${GITHUB_REF##*/}"
+      - name: Determine REPO_PATH
+        id: repo_path
+        run: |
+          BRANCH_NAME="${GITHUB_REF##*/}"
           
-          #if [[ "$BRANCH_NAME" == "main" ]]; then
-            #VERSION=$(jq -r '.mvc' ./version-data/version.json)
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            VERSION=$(jq -r '.mvc' ./version-data/version.json)
 
-            #if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-              #echo "❌ MVC version missing or invalid."
-              #exit 1
-            #fi
+            if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+              echo "❌ MVC version missing or invalid."
+              exit 1
+            fi
 
-            #REPO_PATH="sb-dev-generic-local/main/$VERSION/mvc"
-            #echo "✅ Main branch build: version=$VERSION"
-          #else
-            #REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
-            #echo "🟡 Non-main branch build: version not used"
-          #fi
+            REPO_PATH="sb-dev-generic-local/main/$VERSION/$titles"
+            echo "✅ Main branch build: version=$VERSION"
+          else
+            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/$titles"
+            echo "🟡 Non-main branch build: version not used"
+          fi
 
-          #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-          #echo "REPO_PATH=$REPO_PATH"
+          echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+          echo "REPO_PATH=$REPO_PATH"
 
-      #- name: Push artifact to Artifactory
-        #run: |
-          #echo "Pushing artifact to Artifactory..."
-          #echo "Repo path: $REPO_PATH"
+      - name: Push artifact to Artifactory
+        run: |
+          echo "Pushing artifact to Artifactory..."
+          echo "Repo path: $REPO_PATH"
           # Add actual curl or deploy command here
 
       #- name: Update JSON_VERSIONS GitHub org variable (main only)
