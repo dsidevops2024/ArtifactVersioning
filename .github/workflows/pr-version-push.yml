@@ -74,6 +74,36 @@ jobs:
           COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
           COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" && $1 != "backend" { print $1 }' | sort -u || true)
           COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
+          
+          BACKEND_FILES=$(echo "$FILES" | grep '^backend/' || true)
+          if [ -n "$BACKEND_FILES" ]; then
+            COMPONENTS_JSON="backend/backend-components.json"
+            if ! jq empty "$COMPONENTS_JSON"; then
+              echo "❌ Invalid JSON in $COMPONENTS_JSON"
+              exit 1
+            fi
+
+            declare -A MATCHED_BACKEND_COMPONENTS=()
+            while IFS= read -r file; do
+              TITLES=$(jq -r '.[].title' "$COMPONENTS_JSON")
+              for title in $TITLES; do
+                if [[ "$file" == *"$title"* ]]; then
+                  MATCHED_BACKEND_COMPONENTS["$title"]=1
+                fi
+              done
+            done <<< "$FILES"
+
+            BACKEND_COMPONENTS=$(printf "%s\n" "${!MATCHED_BACKEND_COMPONENTS[@]}" | sort -u | tr '\n' ' ')
+            if [ -n "$BACKEND_COMPONENTS" ]; then
+              COMPONENTS="$COMPONENTS $BACKEND_COMPONENTS"
+            fi
+          fi
+
+          COMPONENTS=$(echo "$COMPONENTS" | xargs -n1 | sort -u | tr '\n' ' ')
+          if [[ -z "$COMPONENTS" ]]; then
+            echo "⚠️ No components changed. Exiting."
+            exit 1
+          fi
           echo "Detected components: $COMPONENTS"
           echo "components=$COMPONENTS" >> $GITHUB_OUTPUT
           
