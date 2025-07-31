@@ -39,7 +39,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           echo "Updated Version JSON:"
-          echo "${{ steps.calculate.outputs.version_json }}" | jq
+          echo '${{ steps.calculate.outputs.version_json }}' | jq
           echo "Changed Components: ${{ steps.calculate.outputs.components }}"
           
       #- name: Download version-info artifact (main only)
