@@ -33,6 +33,7 @@ jobs:
         uses: ./.github/actions/semversion-calculation
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
+          json-versions: ${{ vars.JSON_VERSIONS }}
 
       - name: Use calculated versions
         if: github.ref == 'refs/heads/main'

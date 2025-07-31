@@ -4,6 +4,9 @@ inputs:
   github-token:
     description: 'GitHub Token'
     required: true
+  json-versions:
+    description: 'JSON_VERSIONS org variable value'
+    required: true
 outputs:
   version_json:
     description: 'Updated version JSON'
@@ -108,7 +111,8 @@ runs:
       id: bump_json
       shell: bash
       run: |
-        echo '${{ vars.JSON_VERSIONS }}' > versions.json
+        #echo '${{ vars.JSON_VERSIONS }}' > versions.json
+        echo '${{ inputs.json-versions }}' > versions.json
         cp versions.json tmp.json
 
         BUMP_TYPE="${{ steps.labels.outputs.type }}"
