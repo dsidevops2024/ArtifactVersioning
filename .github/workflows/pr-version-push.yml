@@ -1,8 +1,9 @@
-name: calculate-version
+name: pr-version-push
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+  #push:
+    #branches: [main]
 
 jobs:
   calculate-version:
