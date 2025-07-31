@@ -20,7 +20,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven check6
+      - name: Build with Maven check7
         run: mvn clean install
 
       - name: Download version-info artifact (main only)
@@ -49,10 +49,10 @@ jobs:
               exit 1
             fi
 
-            REPO_PATH="sb-dev-generic-local/main/$VERSION/sphereengine"
+            REPO_PATH="sb-dev-generic-local/main/$VERSION/SphereEngine"
             echo "✅ Main branch build: version=$VERSION"
           else
-            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/sphereengine"
+            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/SphereEngine"
             echo "🟡 Non-main branch build: version not used"
           fi
 

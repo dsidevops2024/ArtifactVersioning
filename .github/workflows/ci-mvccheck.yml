@@ -1,12 +1,13 @@
 name: mvccheck
 
 on:
-  push:
+  workflow_dispatch:
+  #push:
     #branches:
       #- '**'
-    paths:
-      - 'mvc/**'
-      - '.github/workflows/ci-mvccheck.yml'
+    #paths:
+      #- 'mvc/**'
+      #- '.github/workflows/ci-mvccheck.yml'
 
 jobs:
   versioning:
