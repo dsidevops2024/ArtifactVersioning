@@ -135,6 +135,7 @@ jobs:
 
       - name: Update JSON_VERSIONS GitHub org variable (main only)
         if: github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
         run: |
           COMPONENT="${{ matrix.component.title }}"
           if [[ -z "$COMPONENT" ]]; then
