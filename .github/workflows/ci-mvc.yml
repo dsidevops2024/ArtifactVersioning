@@ -13,7 +13,7 @@ jobs:
     steps:
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -27,26 +27,69 @@ jobs:
       - name: Run tests
         run: mvn test
 
-      - name: Download version-info artifact (main only)
+      - name: Calculate Versions and Changed Components
         if: github.ref == 'refs/heads/main'
-        uses: dawidd6/action-download-artifact@v3
+        id: calculate
+        uses: ./.github/actions/semversion-calculation
         with:
-          name: version-info
-          workflow: pr-version-push.yml
-          workflow_conclusion: success
-          branch: main
-          repo: ${{ github.repository }}
-          path: ./version-data
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          if_no_artifact_found: fail
+          github-token: ${{ secrets.AVPAT_TOKEN }}
 
+      - name: Use calculated versions
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Updated Version JSON:"
+          echo "${{ steps.calculate.outputs.version_json }}" | jq
+          echo "Changed Components: ${{ steps.calculate.outputs.components }}"
+          
+      #- name: Download version-info artifact (main only)
+        #if: github.ref == 'refs/heads/main'
+        #uses: dawidd6/action-download-artifact@v3
+        #with:
+          #name: version-info
+          #workflow: pr-version-push.yml
+          #workflow_conclusion: success
+          #branch: main
+          #repo: ${{ github.repository }}
+          #path: ./version-data
+          #github_token: ${{ secrets.GITHUB_TOKEN }}
+          #if_no_artifact_found: fail
+
+      #- name: Copy version-info locally
+        #if: github.ref == 'refs/heads/main'
+        #run: |
+          #mkdir -p version-data
+          #cp version.json version-data/version.json
+          
+      #- name: Determine REPO_PATH
+        #id: repo_path
+        #run: |
+          #BRANCH_NAME="${GITHUB_REF##*/}"
+          
+          #if [[ "$BRANCH_NAME" == "main" ]]; then
+            #VERSION=$(jq -r '.mvc' ./version-data/version.json)
+
+            #if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+              #echo "❌ MVC version missing or invalid."
+              #exit 1
+            #fi
+
+            #REPO_PATH="sb-dev-generic-local/main/$VERSION/mvc"
+            #echo "✅ Main branch build: version=$VERSION"
+          #else
+            #REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
+            #echo "🟡 Non-main branch build: version not used"
+          #fi
+
+          #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+          #echo "REPO_PATH=$REPO_PATH"
+          
       - name: Determine REPO_PATH
         id: repo_path
         run: |
           BRANCH_NAME="${GITHUB_REF##*/}"
-          
+
           if [[ "$BRANCH_NAME" == "main" ]]; then
-            VERSION=$(jq -r '.mvc' ./version-data/version.json)
+            VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
 
             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
               echo "❌ MVC version missing or invalid."
@@ -75,7 +118,8 @@ jobs:
           EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
           echo "$EXISTING" > existing.json
 
-          VERSION=$(jq -r '.mvc' ./version-data/version.json)
+          #VERSION=$(jq -r '.mvc' ./version-data/version.json)
+          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
           echo "{\"mvc\":\"$VERSION\"}" > update.json
 
           MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
