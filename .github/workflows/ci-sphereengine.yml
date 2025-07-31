@@ -87,8 +87,8 @@ jobs:
           echo "$EXISTING" > existing.json
 
           #VERSION=$(jq -r '.mvc' ./version-data/version.json)
-          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.SphereEngine')
-          echo "{\"mvc\":\"$VERSION\"}" > update.json
+          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.sphereengine')
+          echo "{\"sphereengine\":\"$VERSION\"}" > update.json
 
           MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
 
