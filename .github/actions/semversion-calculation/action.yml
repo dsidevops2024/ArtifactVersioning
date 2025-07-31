@@ -111,7 +111,8 @@ runs:
       id: bump_json
       shell: bash
       run: |
-        echo "${{ inputs.json-versions }}" > versions.json
+        echo '${{ inputs.json-versions }}' | jq -c . > versions.json
+        #echo "${{ inputs.json-versions }}" > versions.json
         cp versions.json tmp.json
 
         BUMP_TYPE="${{ steps.labels.outputs.type }}"
