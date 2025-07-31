@@ -131,8 +131,8 @@ runs:
         echo "$FINAL" > version.json
         echo "updated_json=$FINAL" >> $GITHUB_OUTPUT
 
-    - name: Upload version.json
-      uses: actions/upload-artifact@v4
-      with:
-        name: version-info
-        path: version.json
+    #- name: Upload version.json
+      #uses: actions/upload-artifact@v4
+      #with:
+       # name: version-info
+        #path: version.json
