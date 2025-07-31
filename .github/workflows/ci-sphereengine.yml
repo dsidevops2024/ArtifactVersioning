@@ -20,7 +20,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven check6
+      - name: Build with Maven check7
         run: mvn clean install
 
       - name: Download version-info artifact (main only)
