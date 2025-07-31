@@ -104,6 +104,7 @@ jobs:
           if_no_artifact_found: fail
 
       - name: Determine REPO_PATH
+        working-directory: ${{ github.workspace }}
         id: repo_path
         run: |
           BRANCH_NAME="${GITHUB_REF##*/}"
