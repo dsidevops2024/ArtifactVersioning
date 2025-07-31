@@ -57,7 +57,7 @@ jobs:
           BRANCH_NAME="${GITHUB_REF##*/}"
 
           if [[ "$BRANCH_NAME" == "main" ]]; then
-            VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.SphereEngine')
+            VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.sphereengine')
 
             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
               echo "❌ SphereEngine version missing or invalid."
