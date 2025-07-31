@@ -107,37 +107,30 @@ jobs:
         id: repo_path
         run: |
           BRANCH_NAME="${GITHUB_REF##*/}"
-          REPO_PATHS=""
+          COMPONENT="${{ matrix.component.title }}"
 
           if [[ "$BRANCH_NAME" == "main" ]]; then
-            for title in $titles; do
-               VERSION=$(jq -r --arg key "$title" '.[$key]' ./version-data/version.json)
+            VERSION=$(jq -r --arg key "$COMPONENT" '.[$key]' ./version-data/version.json)
 
-             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-               echo "❌ Version missing for $title"
-             exit 1
-             fi
+            if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+              echo "❌ Version missing for $COMPONENT"
+              exit 1
+            fi
 
-             path="sb-dev-generic-local/main/$VERSION/$title"
-             REPO_PATHS="$REPO_PATHS $path"
-             echo "✅ Repo path for $title: $path"
-            done
+            REPO_PATH="sb-dev-generic-local/main/$VERSION/$COMPONENT"
+            echo "✅ Main branch build for $COMPONENT: $REPO_PATH"
           else
-            for title in $titles; do
-              path="sb-dev-generic-local/$BRANCH_NAME/$title"
-              REPO_PATHS="$REPO_PATHS $path"
-              echo "🟡 Non-main branch build path for $title: $path"
-            done
+            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/$COMPONENT"
+            echo "🟡 Non-main branch build for $COMPONENT: $REPO_PATH"
           fi
 
-          echo "REPO_PATHS=$REPO_PATHS" >> $GITHUB_ENV
-          echo "REPO_PATHS=$REPO_PATHS"
+          echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+          echo "REPO_PATH=$REPO_PATH"
 
       - name: Push artifact to Artifactory
         run: |
           echo "Pushing artifact to Artifactory..."
           echo "Repo path: $REPO_PATH"
-          # Add actual curl or deploy command here
 
       #- name: Update JSON_VERSIONS GitHub org variable (main only)
         #if: github.ref == 'refs/heads/main'
