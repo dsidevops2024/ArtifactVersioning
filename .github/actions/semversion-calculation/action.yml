@@ -112,7 +112,7 @@ runs:
       shell: bash
       run: |
         #echo '${{ vars.JSON_VERSIONS }}' > versions.json
-        echo '${{ inputs.json-versions }}' > versions.json
+        echo "${{ inputs.json-versions }}" > versions.json
         cp versions.json tmp.json
 
         BUMP_TYPE="${{ steps.labels.outputs.type }}"
