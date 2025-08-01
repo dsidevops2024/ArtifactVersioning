@@ -89,19 +89,34 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean install -DskipTests
-        
-      - name: Download version-info artifact (main only)
+
+      - name: Calculate Versions and Changed Components
         if: github.ref == 'refs/heads/main'
-        uses: dawidd6/action-download-artifact@v3
+        id: calculate
+        uses: ./.github/actions/semversion-calculation
         with:
-          name: version-info
-          workflow: pr-version-push.yml
-          workflow_conclusion: success
-          branch: main
-          repo: ${{ github.repository }}
-          path: ./version-data
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          if_no_artifact_found: fail
+          github-token: ${{ secrets.AVPAT_TOKEN }}
+          json-versions: ${{ vars.JSON_VERSIONS }}
+
+      - name: Use calculated versions
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Updated Version JSON:"
+          echo '${{ steps.calculate.outputs.version_json }}' | jq
+          echo "Changed Components: ${{ steps.calculate.outputs.components }}"
+          
+      #- name: Download version-info artifact (main only)
+        #if: github.ref == 'refs/heads/main'
+        #uses: dawidd6/action-download-artifact@v3
+        #with:
+          #name: version-info
+          #workflow: pr-version-push.yml
+          #workflow_conclusion: success
+          #branch: main
+          #repo: ${{ github.repository }}
+          #path: ./version-data
+          #github_token: ${{ secrets.GITHUB_TOKEN }}
+          #if_no_artifact_found: fail
 
       - name: Determine REPO_PATH
         working-directory: ${{ github.workspace }}
