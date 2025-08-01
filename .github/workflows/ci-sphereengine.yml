@@ -60,14 +60,14 @@ jobs:
             VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.sphereengine')
 
             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-              echo "❌ SphereEngine version missing or invalid."
+              echo "❌ sphereengine version missing or invalid."
               exit 1
             fi
 
-            REPO_PATH="sb-dev-generic-local/main/$VERSION/SphereEngine"
+            REPO_PATH="sb-dev-generic-local/main/$VERSION/sphereengine"
             echo "✅ Main branch build: version=$VERSION"
           else
-            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/SphereEngine"
+            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/sphereengine"
             echo "🟡 Non-main branch build: version not used"
           fi
 
