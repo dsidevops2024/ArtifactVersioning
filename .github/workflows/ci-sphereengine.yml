@@ -20,7 +20,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven check8
+      - name: Build with Maven check
         run: mvn clean install
 
       - name: Calculate Versions and Changed Components
