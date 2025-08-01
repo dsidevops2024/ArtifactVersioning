@@ -126,7 +126,7 @@ jobs:
           COMPONENT="${{ matrix.component.title }}"
 
           if [[ "$BRANCH_NAME" == "main" ]]; then
-            VERSION=$(jq -r --arg key "$COMPONENT" '.[$key]' ./version-data/version.json)
+            VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r --arg key "$COMPONENT" '.[$key]')
 
             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
               echo "❌ Version missing for $COMPONENT"
