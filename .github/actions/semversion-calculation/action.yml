@@ -58,7 +58,7 @@ runs:
           echo "❌ No valid semver label found."
           exit 1
         fi
-
+        echo "type=$TYPE" 
         echo "type=$TYPE" >> $GITHUB_OUTPUT
 
     - name: Detect changed components
