@@ -36,14 +36,14 @@ jobs:
           #json-versions: ${{ vars.JSON_VERSIONS }}
 
       - name: Use shared versioning action
-        if: github.ref == 'refs/heads/main'
+        #if: github.ref == 'refs/heads/main'
         uses: dsidevops2024/TrainBook/.github/actions/artifactory-multi-pull-curl@main
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
           json-versions: ${{ vars.JSON_VERSIONS }}
           
       - name: Use calculated versions
-        if: github.ref == 'refs/heads/main'
+        #if: github.ref == 'refs/heads/main'
         run: |
           echo "Updated Version JSON:"
           echo '${{ steps.calculate.outputs.version_json }}' | jq
