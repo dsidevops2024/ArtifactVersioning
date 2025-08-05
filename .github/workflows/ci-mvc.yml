@@ -27,14 +27,21 @@ jobs:
       - name: Run tests
         run: mvn test
 
-      - name: Calculate Versions and Changed Components
+      #- name: Calculate Versions and Changed Components
+        #if: github.ref == 'refs/heads/main'
+        #id: calculate
+        #uses: ./.github/actions/semversion-calculation
+        #with:
+          #github-token: ${{ secrets.AVPAT_TOKEN }}
+          #json-versions: ${{ vars.JSON_VERSIONS }}
+
+      - name: Use shared versioning action
         if: github.ref == 'refs/heads/main'
-        id: calculate
-        uses: ./.github/actions/semversion-calculation
+        uses: dsidevops2024/TrainBook/.github/actions/artifactory-multi-pull-curl@main
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
           json-versions: ${{ vars.JSON_VERSIONS }}
-
+          
       - name: Use calculated versions
         if: github.ref == 'refs/heads/main'
         run: |
