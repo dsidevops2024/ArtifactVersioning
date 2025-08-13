@@ -28,6 +28,10 @@ jobs:
 
       - name: Build with new Maven-checking4
         run: mvn -B package --file pom.xml
+
+      - name: cherrypick the chnage
+        run: |
+           echo "cherry pick checking"
     
       - name: Creates stagin directory and copy .war -checking4
         run: |

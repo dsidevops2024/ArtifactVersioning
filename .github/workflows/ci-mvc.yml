@@ -12,7 +12,7 @@ jobs:
 
     steps:
 
-      - name: Checkout code
+      - name: Checkout codes
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -27,14 +27,21 @@ jobs:
       - name: Run tests
         run: mvn test
 
-      - name: Calculate Versions and Changed Components
+      #- name: Calculate Versions and Changed Components
+        #if: github.ref == 'refs/heads/main'
+        #id: calculate
+        #uses: ./.github/actions/semversion-calculation
+        #with:
+          #github-token: ${{ secrets.AVPAT_TOKEN }}
+          #json-versions: ${{ vars.JSON_VERSIONS }}
+
+      - name: Use shared versioning action
         if: github.ref == 'refs/heads/main'
-        id: calculate
-        uses: ./.github/actions/semversion-calculation
+        uses: dsidevops2024/TrainBook/.github/actions/artifactory-multi-pull-curl@main
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
           json-versions: ${{ vars.JSON_VERSIONS }}
-
+          
       - name: Use calculated versions
         if: github.ref == 'refs/heads/main'
         run: |
@@ -122,7 +129,8 @@ jobs:
           echo "$EXISTING" > existing.json
 
           #VERSION=$(jq -r '.mvc' ./version-data/version.json)
-          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
+          #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
+          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc')
           echo "{\"mvc\":\"$VERSION\"}" > update.json
 
           MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
