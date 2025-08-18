@@ -21,7 +21,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven checks
+      - name: Build with Maven check
         run: mvn clean install
 
       - name: Run tests
