@@ -26,13 +26,13 @@ runs:
         fetch-depth: 0
 
     - name: Authenticate GitHub CLI
-      shell: pwsh
+      shell: powershell
       run: |
         "${{ inputs.github-token }}" | gh auth login --with-token
 
     - name: Get merged PR info
       id: pr
-      shell: pwsh
+      shell: powershell
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
@@ -49,7 +49,7 @@ runs:
 
     - name: Get PR labels
       id: labels
-      shell: pwsh
+      shell: powershell
       run: |
         $labels = (Get-Content -Raw pr.json | ConvertFrom-Json).labels.name
         $type = ""
@@ -68,7 +68,7 @@ runs:
 
     - name: Detect changed components
       id: components
-      shell: pwsh
+      shell: powershell
       run: |
         git fetch origin main
         $files = git diff --name-only HEAD^1 HEAD
@@ -136,7 +136,7 @@ runs:
         
     - name: Bump version JSON
       id: bump_json
-      shell: pwsh
+      shell: powershell
       run: |
         # Load input JSON
         $versionsJson = '${{ inputs.json-versions }}' | ConvertFrom-Json
