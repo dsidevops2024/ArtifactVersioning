@@ -154,7 +154,8 @@ jobs:
       - name: Push artifact to Artifactory
         run: |
           echo "Pushing artifact to Artifactory..."
-          echo "Repo path: $REPO_PATH"
+          #echo "Repo path: $REPO_PATH"
+          echo "Repo path: $env:REPO_PATH"
           # Add actual curl or deploy command here
 
       - name: Update JSON_VERSIONS GitHub org variable (main only)
