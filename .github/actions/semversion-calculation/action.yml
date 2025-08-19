@@ -66,8 +66,8 @@ runs:
       shell: bash
       run: |
         git fetch origin main
-        #FILES=$(git diff --name-only HEAD^1 HEAD)
-        FILES=$(git diff --name-only origin/main...HEAD)
+        FILES=$(git diff --name-only HEAD^1 HEAD)
+        #FILES=$(git diff --name-only origin/main...HEAD)
         echo "$FILES"
 
         COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
