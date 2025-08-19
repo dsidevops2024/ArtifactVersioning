@@ -96,7 +96,7 @@ jobs:
         run: |
           $branchName = $Env:GITHUB_REF -split '/' | Select-Object -Last 1
 
-          if ($branchName -eq 'Test-main-versioning') {
+          if ($branchName -eq 'main') {
              # Parse JSON output from previous step
              $versionJson = '${{ steps.calculate.outputs.version_json }}'
              $versionObj = $versionJson | ConvertFrom-Json
