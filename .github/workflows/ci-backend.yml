@@ -126,11 +126,14 @@ jobs:
         run: |
           $branchName = "${env:GITHUB_REF}" -split '/' | Select-Object -Last 1
           $component = "${{ matrix.component.title }}"
-          $versionJson = '${{ steps.calculate.outputs.version_json }}'
+          #$versionJson = '${{ steps.calculate.outputs.version_json }}'
+          $versionJsonRaw = @'
+          ${{ steps.calculate.outputs.version_json }}
+          '@
 
           if ($branchName -eq 'main') {
             try {
-              $version = ($versionJson | ConvertFrom-Json).$component
+              $version = ($versionJsonRaw | ConvertFrom-Json).$component
             } catch {
               Write-Error "❌ Failed to parse version for $component from version_json"
               exit 1
