@@ -1,108 +1,150 @@
-name: "Semantic Version Bump via PR Labels"
-description: "Bump semantic versions in JSON based on changed components and PR labels"
+name: 'Calculate Artifact Versions'
+description: 'Detect changed components, semver label, and bump version'
 
 inputs:
-  base-branch:
-    description: "Base branch to diff against"
-    default: "main"
-  json-versions:
-    description: "Original JSON string of versions"
+  github-token:
+    description: 'GitHub Token'
+    required: true
+  sem-versions:
+    description: 'JSON_VERSIONS org variable value'
     required: true
 
 outputs:
-  updated_json:
-    description: "JSON string with bumped versions"
+  version_json:
+    description: 'Updated version JSON'
+    value: ${{ steps.bump_json.outputs.updated_json }}
   components:
-    description: "List of changed components"
-  bump_type:
-    description: "Bump type: major/minor/patch"
+    description: 'List of changed components'
+    value: ${{ steps.components.outputs.components }}
 
 runs:
   using: "composite"
   steps:
-    - name: Checkout repo
+    - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Get changed files
-      id: changes
-      shell: bash
+    - name: Authenticate GitHub CLI
+      shell: pwsh
       run: |
-        git fetch origin ${{ inputs.base-branch }}
-        MERGE_BASE=$(git merge-base HEAD origin/${{ inputs.base-branch }})
-        FILES=$(git diff --name-only "$MERGE_BASE" HEAD)
-        {
-          echo 'files<<EOF'
-          echo "$FILES"
-          echo 'EOF'
-        } >> "$GITHUB_OUTPUT"
+        "${{ inputs.github-token }}" | gh auth login --with-token
 
-    - name: Extract changed components
-      id: components
-      shell: bash
+    - name: Get merged PR info
+      id: pr
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
-        FILES="${{ steps.changes.outputs.files }}"
-        COMPONENTS=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' | sort -u | tr '\n' ' ')
-        echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
+        $sha = "${{ github.sha }}"
+        $pr = gh pr list --state merged --limit 20 --json number,mergeCommit,baseRefName,headRefName,labels,mergeCommit |
+          ConvertFrom-Json |
+          Where-Object { $_.mergeCommit.oid -eq $sha }
 
-    - name: Parse bump type from PR labels
-      id: bump
-      shell: bash
+        $pr | ConvertTo-Json -Depth 10 | Out-File -FilePath pr.json -Encoding UTF8
+
+        "PR_NUMBER=$($pr.number)" | Out-File -FilePath $env:GITHUB_ENV -Append
+        "BASE_REF=$($pr.baseRefName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+        "HEAD_REF=$($pr.headRefName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+    - name: Get PR labels
+      id: labels
+      shell: pwsh
       run: |
-        #LABELS=$(jq -r '.pull_request.labels[].name' <<< "${{ toJson(github.event) }}")
-        LABELS=$(jq -r '.[].name' <<< "${{ toJson(github.event.pull_request.labels) }}")
-
-
-        TYPE=""
-        if echo "$LABELS" | grep -q "semver:major"; then
-          TYPE="major"
-        elif echo "$LABELS" | grep -q "semver:minor"; then
-          TYPE="minor"
-        elif echo "$LABELS" | grep -q "semver:patch"; then
-          TYPE="patch"
-        else
-          echo "❌ No valid semver label found."
+        $labels = (Get-Content -Raw pr.json | ConvertFrom-Json).labels.name
+        $type = ""
+        if ($labels -contains "semver:major") {
+          $type = "major"
+        } elseif ($labels -contains "semver:minor") {
+          $type = "minor"
+        } elseif ($labels -contains "semver:patch") {
+          $type = "patch"
+        } else {
+          Write-Error "No valid semver label found."
           exit 1
-        fi
+        }
 
-        echo "type=$TYPE" >> "$GITHUB_OUTPUT"
+        "type=$type" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-    - name: Bump versions in JSON
-      id: bump_versions
-      shell: bash
+    - name: Detect changed components
+      id: components
+      shell: pwsh
       run: |
-        COMPONENTS="${{ steps.components.outputs.components }}"
-        BUMP_TYPE="${{ steps.bump.outputs.type }}"
+        git fetch origin Test-main-versioning
+        $files = git diff --name-only HEAD^1 HEAD
+        Write-Host "Changed files:"
+        $files
 
-        echo '${{ inputs.json-versions }}' > versions.json
-        jq '.' versions.json > tmp.json
+        $componentsFromYml = ($files | Where-Object { $_ -match 'ci-(.+)\.yml' } | ForEach-Object {
+          ($_ -split 'ci-')[1] -replace '\.yml', ''
+        })
 
-        for COMP in $COMPONENTS; do
-          CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
-          if [ "$CURRENT" = "null" ]; then
-            echo "Component $COMP not found in JSON. Skipping."
-            continue
-          fi
+        $componentsFromDir = $files | Where-Object { ($_ -split '/')[0] -notin ".github", "backend" } |
+          ForEach-Object { ($_ -split '/')[0] } | Sort-Object -Unique
 
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+        $components = $componentsFromYml + $componentsFromDir
 
-          case "$BUMP_TYPE" in
-            major)
-              ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
-            minor)
-              ((MINOR+=1)); PATCH=0 ;;
-            patch)
-              ((PATCH+=1)) ;;
-          esac
+        $backendFiles = $files | Where-Object { $_ -like 'backend/*' }
 
-          NEW="$MAJOR.$MINOR.$PATCH"
-          tmp=$(mktemp)
-          jq --arg c "$COMP" --arg v "$NEW" '.[$c]=$v' tmp.json > "$tmp" && mv "$tmp" tmp.json
-        done
+        if ($backendFiles.Count -gt 0) {
+          $jsonFile = "backend/backend-components.json"
+          try {
+            $backendJson = Get-Content $jsonFile | ConvertFrom-Json
+          } catch {
+            Write-Error "Invalid JSON in $jsonFile"
+            exit 1
+          }
 
-        {
-          echo "updated_json<<EOF"
-          cat tmp.json | jq -c .
-          echo "EOF"
-        } >> "$GITHUB_OUTPUT"
+          $matchedBackend = @()
+          foreach ($file in $files) {
+            foreach ($item in $backendJson) {
+              if ($file -like "*$($item.title)*") {
+                $matchedBackend += $item.title
+              }
+            }
+          }
+
+          $components += $matchedBackend | Sort-Object -Unique
+        }
+
+        $components = $components | Where-Object { $_ -ne "backend" } | Sort-Object -Unique
+        if (-not $components) {
+          Write-Error "No components changed. Exiting."
+          exit 1
+        }
+
+        $componentStr = $components -join " "
+        "components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+    - name: Bump version JSON
+      id: bump_json
+      shell: pwsh
+      run: |
+        $versionsJson = '${{ inputs.sem-versions }}' | ConvertFrom-Json
+        $tmpJson = $versionsJson.PSObject.Copy()
+
+        $bumpType = "${{ steps.labels.outputs.type }}"
+        $components = "${{ steps.components.outputs.components }}" -split '\s+'
+
+        foreach ($comp in $components) {
+          if (-not $tmpJson.ContainsKey($comp)) { continue }
+
+          $current = $tmpJson[$comp]
+          $parts = $current -split '\.'
+          [int]$major = $parts[0]
+          [int]$minor = $parts[1]
+          [int]$patch = $parts[2]
+
+          switch ($bumpType) {
+            "major" { $major++; $minor = 0; $patch = 0 }
+            "minor" { $minor++; $patch = 0 }
+            "patch" { $patch++ }
+          }
+
+          $newVersion = "$major.$minor.$patch"
+          $tmpJson[$comp] = $newVersion
+        }
+
+        $finalJson = $tmpJson | ConvertTo-Json -Compress
+        $finalJson | Out-File -FilePath version.json -Encoding utf8
+        "updated_json=$finalJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
