@@ -145,10 +145,12 @@ jobs:
             }
 
             $repoPath = "sb-dev-generic-local/main/$component/$version/"
-            Write-Host "✅ Main branch build for $component: $repoPath"
+            #Write-Host "✅ Main branch build for $component: $repoPath"
+            Write-Host "✅ Main branch build for ${component}: ${repoPath}"
             } else {
               $repoPath = "sb-dev-generic-local/$branchName/$component"
-              Write-Host "🟡 Non-main branch build for $component: $repoPath"
+              #Write-Host "🟡 Non-main branch build for $component: $repoPath"
+              Write-Host "🟡 Non-main branch build for ${component}: ${repoPath}"
           }
 
           # Set environment variable and output
