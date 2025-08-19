@@ -112,9 +112,17 @@ runs:
           Write-Error "No components changed. Exiting."
           exit 1
         }
+        # Ensure clean, space-separated string and remove empty/duplicate values
+        $componentStr = ($components | Where-Object { $_ -and ($_ -ne "") } | Sort-Object -Unique) -join " "
 
-        $componentStr = $components -join " "
+        # Debug log to verify before output
+        Write-Host "✅ Final component string: '$componentStr'"
+
+        # Safely export to GitHub Actions output
         "components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+        #$componentStr = $components -join " "
+        #"components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
     - name: Bump version JSON
       id: bump_json
@@ -127,7 +135,9 @@ runs:
         $tmpJson = $versionsJson | ConvertTo-Json -Depth 10 | ConvertFrom-Json
 
         $bumpType = "${{ steps.labels.outputs.type }}"
-        $components = "${{ steps.components.outputs.components }}" -split '\s+'
+        #$components = "${{ steps.components.outputs.components }}" -split '\s+'
+        $components = "${{ steps.components.outputs.components }}" -split '\s+' | Where-Object { $_ -ne "" }
+        Write-Host "🧩 Parsed components: $($components -join ', ')"
 
         foreach ($comp in $components) {
           # Check if property exists on object
