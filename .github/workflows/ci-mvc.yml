@@ -43,7 +43,7 @@ jobs:
           #github-token: ${{ secrets.AVPAT_TOKEN }}
           #json-versions: ${{ vars.JSON_VERSIONS }}
           
-      - name: Use calculated version
+      - name: Use calculated versions
         if: github.ref == 'refs/heads/main'
         run: |
           echo "Updated Version JSON:"
