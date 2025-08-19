@@ -24,12 +24,32 @@ runs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+    # Install GitHub CLI if not present
+    - name: Install GitHub CLI
+      shell: powershell
+      run: |
+        choco install gh
 
+    # Add GitHub CLI to PATH (if needed)
     - name: Add GitHub CLI to PATH
       shell: powershell
       run: |
-        $env:PATH += ";C:\Program Files\GitHub CLI"
+        $env:PATH += ";`"C:\Program Files\GitHub CLI`""
         Write-Host "GH CLI is available on PATH: $env:PATH"
+
+    # Verify if GH CLI is available
+    - name: Verify GitHub CLI installation
+      shell: powershell
+      run: |
+        gh --version
+        
+    #- name: Add GitHub CLI to PATH
+      #shell: powershell
+      #run: |
+        #$env:Path += ";C:\'Program Files'\'GitHub CLI'"
+        #$env:path += ";`"C:\Program Files\GitHub CLI`""
+        #Write-Host "GH CLI is available on PATH: $env:PATH"
+        #gh --version
 
     - name: Authenticate GitHub CLI
       shell: powershell
