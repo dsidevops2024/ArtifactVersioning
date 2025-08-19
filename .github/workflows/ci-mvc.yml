@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
 
@@ -21,7 +21,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven check123
+      - name: Build with Maven check22
         run: mvn clean install
 
       - name: Run tests
@@ -93,7 +93,7 @@ jobs:
           #echo "REPO_PATH=$REPO_PATH"
       - name: Determine REPO_PATH
         id: repo_path
-        shell: pwsh
+        shell: powershell
         run: |
           $branchName = $Env:GITHUB_REF -split '/' | Select-Object -Last 1
 
@@ -154,7 +154,8 @@ jobs:
       - name: Push artifact to Artifactory
         run: |
           echo "Pushing artifact to Artifactory..."
-          echo "Repo path: $REPO_PATH"
+          #echo "Repo path: $REPO_PATH"
+          echo "Repo path: $env:REPO_PATH"
           # Add actual curl or deploy command here
 
       - name: Update JSON_VERSIONS GitHub org variable (main only)
