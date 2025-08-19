@@ -8,7 +8,7 @@ on:
 
 jobs:
   Changed-Files-JSON:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       components: ${{ steps.json-format.outputs.components }}
 
@@ -65,7 +65,7 @@ jobs:
 
   Build-Changed-Components:
     needs: Changed-Files-JSON
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         component: ${{ fromJson(needs.Changed-Files-JSON.outputs.components) }}
