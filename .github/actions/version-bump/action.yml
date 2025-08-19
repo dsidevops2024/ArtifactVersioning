@@ -70,7 +70,7 @@ runs:
       id: components
       shell: pwsh
       run: |
-        git fetch origin Test-main-versioning
+        git fetch origin main
         $files = git diff --name-only HEAD^1 HEAD
         Write-Host "Changed files:"
         $files
