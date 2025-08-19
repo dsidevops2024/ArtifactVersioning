@@ -25,6 +25,12 @@ runs:
       with:
         fetch-depth: 0
 
+    - name: Add GitHub CLI to PATH
+      shell: powershell
+      run: |
+        $env:PATH += ";C:\Program Files\GitHub CLI"
+        Write-Host "GH CLI is available on PATH: $env:PATH"
+
     - name: Authenticate GitHub CLI
       shell: powershell
       run: |
