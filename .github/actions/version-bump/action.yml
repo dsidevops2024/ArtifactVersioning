@@ -79,13 +79,14 @@ runs:
           ($_ -split 'ci-')[1] -replace '\.yml', ''
         })
 
-        $componentsFromDir = $files | Where-Object { ($_ -split '/')[0] -notin ".github", "backend" } |
-          ForEach-Object { ($_ -split '/')[0] } | Sort-Object -Unique
+        $componentsFromDir = $files | ForEach-Object {
+          ($_.Split('/')[0])
+        } | Where-Object { $_ -notin ".github", "backend" } 
 
         $components = $componentsFromYml + $componentsFromDir
 
+        # Handle backend components if any changes
         $backendFiles = $files | Where-Object { $_ -like 'backend/*' }
-
         if ($backendFiles.Count -gt 0) {
           $jsonFile = "backend/backend-components.json"
           try {
@@ -94,36 +95,30 @@ runs:
             Write-Error "Invalid JSON in $jsonFile"
             exit 1
           }
-
-          $matchedBackend = @()
-          foreach ($file in $files) {
+          $matchedBackend = foreach ($file in $files) {
             foreach ($item in $backendJson) {
               if ($file -like "*$($item.title)*") {
-                $matchedBackend += $item.title
+                 $item.title
               }
             }
           }
+          $components += $matchedBackend
+         }
 
-          $components += $matchedBackend | Sort-Object -Unique
+         # Remove duplicates and "backend" sentinel
+         $components = $components | Where-Object { $_ -and ($_ -ne "backend") } | Sort-Object -Unique
+
+         if (-not $components) {
+           Write-Error "No components changed. Exiting."
+           exit 1
         }
 
-        $components = $components | Where-Object { $_ -ne "backend" } | Sort-Object -Unique
-        if (-not $components) {
-          Write-Error "No components changed. Exiting."
-          exit 1
-        }
-        # Ensure clean, space-separated string and remove empty/duplicate values
-        $componentStr = ($components | Where-Object { $_ -and ($_ -ne "") } | Sort-Object -Unique) -join " "
-
-        # Debug log to verify before output
+        Write-Host "🧩 Parsed components before join: $($components -join ', ')"
+        $componentStr = $components -join " "
         Write-Host "✅ Final component string: '$componentStr'"
 
-        # Safely export to GitHub Actions output
-        "components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
-        #$componentStr = $components -join " "
-        #"components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
+        "components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append    
+        
     - name: Bump version JSON
       id: bump_json
       shell: pwsh
