@@ -120,7 +120,7 @@ jobs:
           #if_no_artifact_found: fail
 
       - name: Determine REPO_PATH
-        shell: pwsh
+        shell: powershell
         working-directory: ${{ github.workspace }}
         id: repo_path
         run: |
