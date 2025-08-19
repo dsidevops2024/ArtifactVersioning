@@ -93,7 +93,8 @@ jobs:
       - name: Calculate Versions and Changed Components
         if: github.ref == 'refs/heads/main'
         id: calculate
-        uses: ./.github/actions/semversion-calculation
+        #uses: ./.github/actions/semversion-calculation
+        uses: ./.github/actions/version-bump
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
           json-versions: ${{ vars.JSON_VERSIONS }}
@@ -119,34 +120,121 @@ jobs:
           #if_no_artifact_found: fail
 
       - name: Determine REPO_PATH
+        shell: pwsh
         working-directory: ${{ github.workspace }}
         id: repo_path
         run: |
-          BRANCH_NAME="${GITHUB_REF##*/}"
-          COMPONENT="${{ matrix.component.title }}"
+          $branchName = "${env:GITHUB_REF}" -split '/' | Select-Object -Last 1
+          $component = "${{ matrix.component.title }}"
+          $versionJson = '${{ steps.calculate.outputs.version_json }}'
 
-          if [[ "$BRANCH_NAME" == "main" ]]; then
-            VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r --arg key "$COMPONENT" '.[$key]')
-
-            if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-              echo "❌ Version missing for $COMPONENT"
+          if ($branchName -eq 'main') {
+            try {
+              $version = ($versionJson | ConvertFrom-Json).$component
+            } catch {
+              Write-Error "❌ Failed to parse version for $component from version_json"
               exit 1
-            fi
+            }
 
-            REPO_PATH="sb-dev-generic-local/main/$VERSION/$COMPONENT"
-            echo "✅ Main branch build for $COMPONENT: $REPO_PATH"
-          else
-            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/$COMPONENT"
-            echo "🟡 Non-main branch build for $COMPONENT: $REPO_PATH"
-          fi
+            if (-not $version) {
+              Write-Error "❌ Version missing for $component"
+              exit 1
+            }
 
-          echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-          echo "REPO_PATH=$REPO_PATH"
+            $repoPath = "sb-dev-generic-local/main/$component/$version/"
+            Write-Host "✅ Main branch build for $component: $repoPath"
+            } else {
+              $repoPath = "sb-dev-generic-local/$branchName/$component"
+              Write-Host "🟡 Non-main branch build for $component: $repoPath"
+          }
+
+          # Set environment variable and output
+          "REPO_PATH=$repoPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "REPO_PATH=$repoPath" | Write-Output
+      
+      #- name: Determine REPO_PATH
+        #working-directory: ${{ github.workspace }}
+        #id: repo_path
+        #run: |
+          #BRANCH_NAME="${GITHUB_REF##*/}"
+          #COMPONENT="${{ matrix.component.title }}"
+
+          #if [[ "$BRANCH_NAME" == "main" ]]; then
+            #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r --arg key "$COMPONENT" '.[$key]')
+
+            #if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+              #echo "❌ Version missing for $COMPONENT"
+              #exit 1
+            #fi
+
+            #REPO_PATH="sb-dev-generic-local/main/$COMPONENT/$VERSION/"
+            #echo "✅ Main branch build for $COMPONENT: $REPO_PATH"
+          #else
+            #REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/$COMPONENT"
+            #echo "🟡 Non-main branch build for $COMPONENT: $REPO_PATH"
+          #fi
+
+          #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+          #echo "REPO_PATH=$REPO_PATH"
 
       - name: Push artifact to Artifactory
         run: |
           echo "Pushing artifact to Artifactory..."
           echo "Repo path: $REPO_PATH"
+          
+      #- name: Update JSON_VERSIONS GitHub org variable (main only)
+        #if: github.ref == 'refs/heads/main'
+        #shell: pwsh
+        #working-directory: ${{ github.workspace }}
+        #env:
+          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+        #run: |
+          #$component = "${{ matrix.component.title }}"
+
+          #if ([string]::IsNullOrWhiteSpace($component)) {
+            #Write-Error "❌ Component title not set."
+            #exit 1
+          #}
+
+          # Fetch existing GitHub org variable
+          #$existing = gh variable get JSON_VERSIONS --org dsidevops2024 --json value --jq '.value'
+          #if (-not $existing) {
+            #Write-Host "⚠️ No existing JSON_VERSIONS value found. Initializing empty object."
+            #$existing = "{}"
+          #}
+          #$existing | Out-File -FilePath existing.json -Encoding utf8
+
+          # Parse version from version_json
+          #$versionJson = '${{ steps.calculate.outputs.version_json }}' 
+          #try {
+            #$parsedJson = $versionJson | ConvertFrom-Json
+            #$version = $parsedJson.$component
+          #} catch {
+            #Write-Error "❌ Failed to parse version_json or extract version."
+            #exit 1
+          #}
+
+          #if ([string]::IsNullOrWhiteSpace($version)) {
+            #Write-Error "❌ Version not found for $component"
+            #exit 1
+          #}
+
+          # Write update object
+          #$updateObj = @{ $component = $version } | ConvertTo-Json -Compress
+          #$updateObj | Out-File -FilePath update.json -Encoding utf8
+
+          # Merge using jq (jq must be available in the runner)
+          #$merged = & jq -s '.[0] * .[1]' existing.json update.json
+
+          #if (-not $merged) {
+            #Write-Error "❌ Failed to merge JSON."
+            #exit 1
+          #}
+
+          #Write-Host "✅ Merged version JSON: $merged"
+
+          # Update GitHub org variable
+          #gh variable set JSON_VERSIONS --body "$merged" --org dsidevops2024 --visibility all
 
       - name: Update JSON_VERSIONS GitHub org variable (main only)
         if: github.ref == 'refs/heads/main'
