@@ -93,7 +93,7 @@ jobs:
           #echo "REPO_PATH=$REPO_PATH"
       - name: Determine REPO_PATH
         id: repo_path
-        shell: pwsh
+        shell: powershell
         run: |
           $branchName = $Env:GITHUB_REF -split '/' | Select-Object -Last 1
 
