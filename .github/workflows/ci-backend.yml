@@ -8,7 +8,7 @@ on:
 
 jobs:
   Changed-Files-JSON:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       components: ${{ steps.json-format.outputs.components }}
 
