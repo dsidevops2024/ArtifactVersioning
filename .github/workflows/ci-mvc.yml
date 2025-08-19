@@ -90,31 +90,53 @@ jobs:
 
           #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
           #echo "REPO_PATH=$REPO_PATH"
-          
       - name: Determine REPO_PATH
         id: repo_path
+        shell: bash
         run: |
+          echo "Raw version_json: '${{ steps.calculate.outputs.version_json }}'"
+    
           BRANCH_NAME="${GITHUB_REF##*/}"
-
-          if [[ "$BRANCH_NAME" == "main" ]]; then
-            #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
-            VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc')
-
+    
+          if [[ "$BRANCH_NAME" == "Test-main-versioning" ]]; then
+            VERSION=$(jq -r 'with_entries(.key |= ascii_downcase) | .mvc' <<< '${{ steps.calculate.outputs.version_json }}')
 
             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-              echo "❌ MVC version missing or invalid."
+              echo "MVC version missing or invalid."
               exit 1
             fi
 
-            REPO_PATH="sb-dev-generic-local/main/$VERSION/mvc"
-            echo "✅ Main branch build: version=$VERSION"
+            REPO_PATH="sb-dev-ver-generic-local/$BRANCH_NAME/mvc/$VERSION"
           else
             REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
-            echo "🟡 Non-main branch build: version not used"
           fi
 
           echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-          echo "REPO_PATH=$REPO_PATH"
+          echo "REPO_PATH=$REPO_PATH"    
+      #- name: Determine REPO_PATH
+        #id: repo_path
+        #run: |
+          #BRANCH_NAME="${GITHUB_REF##*/}"
+
+          #if [[ "$BRANCH_NAME" == "main" ]]; then
+            #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
+            #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc')
+
+
+            #if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+              #echo "❌ MVC version missing or invalid."
+              #exit 1
+            #fi
+
+            #REPO_PATH="sb-dev-generic-local/main/$VERSION/mvc"
+            #echo "✅ Main branch build: version=$VERSION"
+          #else
+            #REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
+            #echo "🟡 Non-main branch build: version not used"
+          #fi
+
+          #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+          #echo "REPO_PATH=$REPO_PATH"
 
       - name: Push artifact to Artifactory
         run: |
