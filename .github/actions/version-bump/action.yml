@@ -63,7 +63,7 @@ runs:
           Write-Error "No valid semver label found."
           exit 1
         }
-
+        Write-Host "✅ Version bump type: $type"
         "type=$type" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
     - name: Detect changed components
@@ -75,53 +75,64 @@ runs:
         Write-Host "Changed files:"
         $files
 
-        $componentsFromYml = ($files | Where-Object { $_ -match 'ci-(.+)\.yml' } | ForEach-Object {
+        # Extract component names from ci-*.yml files
+        $componentsFromYml = @()
+        $componentsFromYml += $files | Where-Object { $_ -match 'ci-(.+)\.yml' } | ForEach-Object {
           ($_ -split 'ci-')[1] -replace '\.yml', ''
-        })
+        }
+        Write-Host "🔹 Components from YML: $($componentsFromYml -join ', ')"
 
-        $componentsFromDir = $files | ForEach-Object {
+        # Extract top-level directories, excluding .github and backend
+        $componentsFromDir = @()
+        $componentsFromDir += $files | ForEach-Object {
           ($_.Split('/')[0])
-        } | Where-Object { $_ -notin ".github", "backend" } 
+        } | Where-Object { $_ -and ($_ -ne ".github") -and ($_ -ne "backend") }
+        Write-Host "🔹 Components from directories: $($componentsFromDir -join ', ')"
 
-        $components = $componentsFromYml + $componentsFromDir
+        # Combine initial components
+        $components = @()
+        $components += $componentsFromYml
+        $components += $componentsFromDir
 
-        # Handle backend components if any changes
+        # Handle backend components if changed
         $backendFiles = $files | Where-Object { $_ -like 'backend/*' }
         if ($backendFiles.Count -gt 0) {
           $jsonFile = "backend/backend-components.json"
           try {
             $backendJson = Get-Content $jsonFile | ConvertFrom-Json
           } catch {
-            Write-Error "Invalid JSON in $jsonFile"
+            Write-Error "❌ Invalid JSON in $jsonFile"
             exit 1
           }
-          $matchedBackend = foreach ($file in $files) {
+
+          $matchedBackend = @()
+          foreach ($file in $files) {
             foreach ($item in $backendJson) {
               if ($file -like "*$($item.title)*") {
-                 $item.title
+                $matchedBackend += $item.title
               }
             }
           }
-          $components += $matchedBackend
-         }
-        
-         # Remove duplicates and "backend" sentinel
-         #$components = $components | Where-Object { $_ -and ($_ -ne "backend") } | Sort-Object -Unique
 
-         # Remove duplicates (and skip "backend")
-         $components = $components | Where-Object { $_ -and ($_ -ne "backend") } | Select-Object -Unique  
-         # <-- This ensures proper deduplication
+          if ($matchedBackend.Count -gt 0) {
+            Write-Host "🔹 Matched backend components: $($matchedBackend -join ', ')"
+            $components += $matchedBackend
+          }
+        }
 
-         if (-not $components) {
-           Write-Error "No components changed. Exiting."
-           exit 1
+        # Final cleanup: remove empty values, "backend", and duplicates
+        $components = $components | Where-Object { $_ -and ($_ -ne "backend") } | Select-Object -Unique
+
+        if (-not $components -or $components.Count -eq 0) {
+          Write-Error "❌ No components changed. Exiting."
+          exit 1
         }
 
         Write-Host "🧩 Parsed components before join: $($components -join ', ')"
         $componentStr = $components -join " "
         Write-Host "✅ Final component string: '$componentStr'"
 
-        "components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append    
+        "components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append   
         
     - name: Bump version JSON
       id: bump_json
