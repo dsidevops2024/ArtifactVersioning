@@ -120,31 +120,36 @@ runs:
       id: bump_json
       shell: pwsh
       run: |
+        # Load input JSON
         $versionsJson = '${{ inputs.json-versions }}' | ConvertFrom-Json
-        $tmpJson = $versionsJson.PSObject.Copy()
+
+        # Clone the object safely by serializing and deserializing
+        $tmpJson = $versionsJson | ConvertTo-Json -Depth 10 | ConvertFrom-Json
 
         $bumpType = "${{ steps.labels.outputs.type }}"
         $components = "${{ steps.components.outputs.components }}" -split '\s+'
 
         foreach ($comp in $components) {
-          if (-not $tmpJson.ContainsKey($comp)) { continue }
+          # Check if property exists on object
+          if (-not $tmpJson.PSObject.Properties.Name -contains $comp) { continue }
 
-          $current = $tmpJson[$comp]
-          $parts = $current -split '\.'
-          [int]$major = $parts[0]
-          [int]$minor = $parts[1]
-          [int]$patch = $parts[2]
+            $current = $tmpJson.$comp
+            $parts = $current -split '\.'
+            [int]$major = $parts[0]
+            [int]$minor = $parts[1]
+            [int]$patch = $parts[2]
 
-          switch ($bumpType) {
-            "major" { $major++; $minor = 0; $patch = 0 }
-            "minor" { $minor++; $patch = 0 }
-            "patch" { $patch++ }
+            switch ($bumpType) {
+              "major" { $major++; $minor = 0; $patch = 0 }
+              "minor" { $minor++; $patch = 0 }
+              "patch" { $patch++ }
+            }
+
+            $newVersion = "$major.$minor.$patch"
+            # Update the property value
+            $tmpJson | Add-Member -NotePropertyName $comp -NotePropertyValue $newVersion -Force
           }
 
-          $newVersion = "$major.$minor.$patch"
-          $tmpJson[$comp] = $newVersion
-        }
-
-        $finalJson = $tmpJson | ConvertTo-Json -Compress
-        $finalJson | Out-File -FilePath version.json -Encoding utf8
-        "updated_json=$finalJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $finalJson = $tmpJson | ConvertTo-Json -Compress
+          $finalJson | Out-File -FilePath version.json -Encoding utf8
+          "updated_json=$finalJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
