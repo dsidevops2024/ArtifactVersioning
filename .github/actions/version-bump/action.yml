@@ -104,9 +104,13 @@ runs:
           }
           $components += $matchedBackend
          }
-
+        
          # Remove duplicates and "backend" sentinel
-         $components = $components | Where-Object { $_ -and ($_ -ne "backend") } | Sort-Object -Unique
+         #$components = $components | Where-Object { $_ -and ($_ -ne "backend") } | Sort-Object -Unique
+
+         # Remove duplicates (and skip "backend")
+         $components = $components | Where-Object { $_ -and ($_ -ne "backend") } | Select-Object -Unique  
+         # <-- This ensures proper deduplication
 
          if (-not $components) {
            Write-Error "No components changed. Exiting."
