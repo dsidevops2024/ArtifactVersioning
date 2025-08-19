@@ -107,7 +107,7 @@ jobs:
               exit 1
             fi
 
-            REPO_PATH="sb-dev-generic-local/main/$VERSION/mvc"
+            REPO_PATH="sb-dev-generic-local/main/mvc/$VERSION"
             echo "✅ Main branch build: version=$VERSION"
           else
             REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
