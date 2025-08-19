@@ -63,50 +63,63 @@ runs:
 
     - name: Detect changed components
       id: components
-      shell: bash
+      shell: pwsh
       run: |
         git fetch origin main
         FILES=$(git diff --name-only HEAD^1 HEAD)
         #FILES=$(git diff --name-only origin/main...HEAD)
         echo "$FILES"
 
-        COMPONENTS_FROM_YML=$(echo "$FILES" | grep -oP 'ci-\K[^.]+(?=\.yml)' || true)
-        COMPONENTS_FROM_DIR=$(echo "$FILES" | awk -F/ '$1 != ".github" && $1 != "backend" { print $1 }' | sort -u || true)
+        # Extract component names from ci-*.yml files (case-insensitive)
+        $componentsFromYml = $files | Where-Object { $_ -match '(?i)ci-(.+)\.yml' } | ForEach-Object {
+          ($_ -split 'ci-')[1] -replace '\.yml', ''
+        }
 
-        COMPONENTS=$(echo -e "$COMPONENTS_FROM_YML\n$COMPONENTS_FROM_DIR" | sort -u | tr '\n' ' ')
+        # Extract top-level directories (skip .github and backend)
+        $componentsFromDir = $files | ForEach-Object {
+          ($_.Split('/')[0])
+        } | Where-Object { $_ -and ($_ -ne ".github") -and ($_ -ne "backend") }
 
-        BACKEND_FILES=$(echo "$FILES" | grep '^backend/' || true)
+        $components = @()
+        $components += $componentsFromYml
+        $components += $componentsFromDir
 
-        if [ -n "$BACKEND_FILES" ]; then
-          COMPONENTS_JSON="backend/backend-components.json"
-          if ! jq empty "$COMPONENTS_JSON"; then
-            echo "❌ Invalid JSON in $COMPONENTS_JSON"
+        # Handle backend components
+        $backendFiles = $files | Where-Object { $_ -like 'backend/*' }
+        if ($backendFiles.Count -gt 0) {
+          $jsonFile = "backend/backend-components.json"
+          try {
+            $backendJson = Get-Content $jsonFile | ConvertFrom-Json
+          } catch {
+            Write-Error "Invalid JSON in $jsonFile"
             exit 1
-          fi 
+          }
 
-          declare -A MATCHED_BACKEND_COMPONENTS=()
-          while IFS= read -r file; do
-            TITLES=$(jq -r '.[].title' "$COMPONENTS_JSON")
-            for title in $TITLES; do
-              if [[ "$file" == *"$title"* ]]; then
-                MATCHED_BACKEND_COMPONENTS["$title"]=1
-              fi
-            done
-          done <<< "$FILES"
+          $matchedBackend = @()
+          foreach ($file in $files) {
+            foreach ($item in $backendJson) {
+              if ($file -like "*$($item.title)*") {
+                $matchedBackend += $item.title
+              }
+            }
+          }
 
-          BACKEND_COMPONENTS=$(printf "%s\n" "${!MATCHED_BACKEND_COMPONENTS[@]}" | sort -u | tr '\n' ' ')
-          if [ -n "$BACKEND_COMPONENTS" ]; then
-            COMPONENTS="$COMPONENTS $BACKEND_COMPONENTS"
-          fi
-        fi
+          $components += $matchedBackend
+        }
 
-        COMPONENTS=$(echo "$COMPONENTS" | xargs -n1 | grep -v '^backend$' | sort -u | tr '\n' ' ')
-        if [[ -z "$COMPONENTS" ]]; then
-          echo "⚠️ No components changed. Exiting."
+        # Clean: remove empty, "backend", and duplicates
+        $components = $components | Where-Object { $_ -and ($_ -ne "backend") } | Sort-Object -Unique
+
+        if (-not $components) {
+          Write-Error "No components changed. Exiting."
           exit 1
-        fi
+        }
 
-        echo "components=$COMPONENTS" >> $GITHUB_OUTPUT
+        Write-Host "🧩 Parsed components before join: $($components -join ', ')"
+        $componentStr = ($components -join ' ')
+        Write-Host "✅ Final component string: '$componentStr'"
+
+        "components=$componentStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
     - name: Bump version JSON
       id: bump_json
