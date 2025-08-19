@@ -151,7 +151,7 @@ jobs:
           #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
           #echo "REPO_PATH=$REPO_PATH"
 
-      - name: Push artifact to Artifactory
+      - name: Push artifact to the Artifactory
         run: |
           echo "Pushing artifact to Artifactory..."
           #echo "Repo path: $REPO_PATH"
