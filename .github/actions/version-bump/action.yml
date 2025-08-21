@@ -54,6 +54,7 @@ runs:
     - name: Authenticate GitHub CLI
       shell: powershell
       run: |
+        $env:Path += ";C:\Program Files\GitHub CLI"
         "${{ inputs.github-token }}" | gh auth login --with-token
 
     - name: Get merged PR info
@@ -62,6 +63,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
+        $env:Path += ";C:\Program Files\GitHub CLI"
         $sha = "${{ github.sha }}"
         $pr = gh pr list --state merged --limit 20 --json number,mergeCommit,baseRefName,headRefName,labels,mergeCommit |
           ConvertFrom-Json |
