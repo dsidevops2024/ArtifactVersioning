@@ -35,7 +35,10 @@ jobs:
            #mvn clean install
 
       - name: Run tests
-        run: mvn test
+        run: |
+          $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
+          $env:Path += ";$mavenPath"
+          mvn test
 
       - name: Calculate Versions and Changed Components
         if: github.ref == 'refs/heads/main'
