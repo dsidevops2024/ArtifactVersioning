@@ -65,7 +65,7 @@ jobs:
 
   Build-Changed-Components:
     needs: Changed-Files-JSON
-    runs-on: self-hosted
+    runs-on: Versioning
     strategy:
       matrix:
         component: ${{ fromJson(needs.Changed-Files-JSON.outputs.components) }}
@@ -88,7 +88,11 @@ jobs:
           java-version: '17'
 
       - name: Build with Maven
-        run: mvn clean install -DskipTests
+        shell: powershell
+        run: |
+          $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
+          $env:Path += ";$mavenPath"
+          mvn clean install -DskipTests
 
       - name: Calculate Versions and Changed Components
         if: github.ref == 'refs/heads/main'

@@ -8,11 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: Versioning
 
     steps:
 
-      - name: Checkout codes2
+      - name: Checkout codes3
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -20,12 +20,25 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          
+      - name: Build with Maven
+        shell: powershell
+        run: |
+           $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
+           $env:Path += ";$mavenPath"
+           mvn -version
+           mvn clean install
 
-      - name: Build with Maven check22
-        run: mvn clean install
+      #- name: Build with Maven check23
+        #run: |
+           #$env:Path += ";C:\Program Files\GitHub CLI"
+           #mvn clean install
 
       - name: Run tests
-        run: mvn test
+        run: |
+          $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
+          $env:Path += ";$mavenPath"
+          mvn test
 
       - name: Calculate Versions and Changed Components
         if: github.ref == 'refs/heads/main'
