@@ -61,7 +61,7 @@ runs:
     - name: Authenticate GitHub CLI
       shell: powershell
       run: |
-        '${{ inputs.github-token }}' | gh auth login --with-token | gh auth login --with-token
+        '${{ inputs.github-token }}' | gh auth login --with-token
 
     - name: Get merged PR info
       id: pr
