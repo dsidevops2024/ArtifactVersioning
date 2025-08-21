@@ -29,7 +29,7 @@ jobs:
            mvn -version
            mvn clean install
 
-      #- name: Build with Maven check23
+      #- name: Build with Maven check24
         #run: |
            #$env:Path += ";C:\Program Files\GitHub CLI"
            #mvn clean install
