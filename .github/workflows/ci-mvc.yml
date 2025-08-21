@@ -22,7 +22,7 @@ jobs:
           java-version: '17'
           
       - name: Build with Maven
-        shell: pwsh
+        shell: powershell
         run: |
            $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
            $env:Path += ";$mavenPath"
