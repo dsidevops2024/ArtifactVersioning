@@ -20,9 +20,19 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          
+      - name: Build with Maven
+        shell: pwsh
+        run: |
+           $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
+           $env:Path += ";$mavenPath"
+           mvn -version
+           mvn clean install
 
-      - name: Build with Maven check23
-        run: mvn clean install
+      #- name: Build with Maven check23
+        #run: |
+           #$env:Path += ";C:\Program Files\GitHub CLI"
+           #mvn clean install
 
       - name: Run tests
         run: mvn test
