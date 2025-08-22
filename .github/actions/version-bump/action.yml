@@ -49,8 +49,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
-        # Ensure we're in the Git repo root
-        Set-Location "$env:GITHUB_WORKSPACE"
+        Set-Location (Resolve-Path "$env:GITHUB_WORKSPACE\..")
 
         # Debug
         Write-Host "Current directory: $(Get-Location)"
