@@ -8,11 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: Versioning
+    runs-on: ubuntu-latest
 
     steps:
 
-      - name: Checkout code9
+      - name: Checkout code12
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -22,11 +22,12 @@ jobs:
           java-version: '17'
           
       - name: Build with Maven
-        shell: powershell
+        #shell: powershell
+        shell: bash
         run: |
-           $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
-           $env:Path += ";$mavenPath"
-           mvn -version
+           #$mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
+           #$env:Path += ";$mavenPath"
+           #mvn -version
            mvn clean install
 
       #- name: Build with Maven check24
@@ -35,16 +36,17 @@ jobs:
            #mvn clean install
 
       - name: Run tests
+        shell: bash
         run: |
-          $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
-          $env:Path += ";$mavenPath"
+          #$mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
+          #$env:Path += ";$mavenPath"
           mvn test
 
       - name: Calculate Versions and Changed Components
         if: github.ref == 'refs/heads/main'
         id: calculate
-        #uses: ./.github/actions/semversion-calculation
-        uses: ./.github/actions/version-bump
+        uses: ./.github/actions/semversion-calculation
+        #uses: ./.github/actions/version-bump
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
           json-versions: ${{ vars.JSON_VERSIONS }}
@@ -104,65 +106,65 @@ jobs:
 
           #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
           #echo "REPO_PATH=$REPO_PATH"
-      - name: Determine REPO_PATH
-        id: repo_path
-        shell: powershell
-        run: |
-          $branchName = $Env:GITHUB_REF -split '/' | Select-Object -Last 1
-
-          if ($branchName -eq 'main') {
-             # Parse JSON output from previous step
-             $versionJson = '${{ steps.calculate.outputs.version_json }}'
-             $versionObj = $versionJson | ConvertFrom-Json
-      
-             # To lowercase keys, workaround:
-             $versionObjLower = @{}
-             foreach ($key in $versionObj.PSObject.Properties.Name) {
-               $versionObjLower[$key.ToLower()] = $versionObj.$key
-             }
-      
-             $version = $versionObjLower['mvc']
-
-             if ([string]::IsNullOrEmpty($version) -or $version -eq 'null') {
-                Write-Error "MVC version missing or invalid."
-                exit 1
-             }
-
-             $repoPath = "sb-dev-ver-generic-local/$branchName/mvc/$version"
-            }
-            else {
-              $repoPath = "sb-dev-generic-local/$branchName/mvc"
-            }
-
-            # Set output and environment variable
-            Write-Output "REPO_PATH=$repoPath"
-            echo "REPO_PATH=$repoPath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-  
       #- name: Determine REPO_PATH
         #id: repo_path
+        #shell: powershell
         #run: |
-          #BRANCH_NAME="${GITHUB_REF##*/}"
+          #$branchName = $Env:GITHUB_REF -split '/' | Select-Object -Last 1
 
-          #if [[ "$BRANCH_NAME" == "main" ]]; then
+          #if ($branchName -eq 'main') {
+             # Parse JSON output from previous step
+             #$versionJson = '${{ steps.calculate.outputs.version_json }}'
+             #$versionObj = $versionJson | ConvertFrom-Json
+      
+             # To lowercase keys, workaround:
+             #$versionObjLower = @{}
+             #foreach ($key in $versionObj.PSObject.Properties.Name) {
+               #$versionObjLower[$key.ToLower()] = $versionObj.$key
+             #}
+      
+             #$version = $versionObjLower['mvc']
+
+             #if ([string]::IsNullOrEmpty($version) -or $version -eq 'null') {
+                #Write-Error "MVC version missing or invalid."
+                #exit 1
+             #}
+
+             #$repoPath = "sb-dev-ver-generic-local/$branchName/mvc/$version"
+            #}
+            #else {
+              #$repoPath = "sb-dev-generic-local/$branchName/mvc"
+            #}
+
+            # Set output and environment variable
+            #Write-Output "REPO_PATH=$repoPath"
+            #echo "REPO_PATH=$repoPath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+  
+      - name: Determine REPO_PATH
+        id: repo_path
+        run: |
+          BRANCH_NAME="${GITHUB_REF##*/}"
+
+          if [[ "$BRANCH_NAME" == "main" ]]; then
             #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
             #VERSION=$(jq -r 'with_entries(.key |= ascii_downcase) | .mvc' <<< '${{ steps.calculate.outputs.version_json }}')
-            #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc')
+            VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc')
 
 
-            #if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-              #echo "❌ MVC version missing or invalid."
-              #exit 1
-            #fi
+            if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+              echo "❌ MVC version missing or invalid."
+              exit 1
+            fi
 
-            #REPO_PATH="sb-dev-generic-local/main/mvc/$VERSION"
-            #echo "✅ Main branch build: version=$VERSION"
-          #else
-            #REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
-            #echo "🟡 Non-main branch build: version not used"
-          #fi
+            REPO_PATH="sb-dev-generic-local/main/mvc/$VERSION"
+            echo "✅ Main branch build: version=$VERSION"
+          else
+            REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
+            echo "🟡 Non-main branch build: version not used"
+          fi
 
-          #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-          #echo "REPO_PATH=$REPO_PATH"
+          echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
+          echo "REPO_PATH=$REPO_PATH"
 
       - name: Push artifact to the Artifactory
         run: |

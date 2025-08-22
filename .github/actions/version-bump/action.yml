@@ -23,7 +23,7 @@ runs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: .
 
     - name: Add GitHub CLI to PATH
       shell: powershell
@@ -42,13 +42,25 @@ runs:
         gh auth status
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}   
- 
+  
     - name: Get merged PR info
       id: pr
       shell: powershell
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
+        Set-Location (Resolve-Path "$env:GITHUB_WORKSPACE\..")
+
+        # Debug
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Contents:"
+        Get-ChildItem -Force
+
+        # Check for .git
+        if (!(Test-Path ".git")) {
+           Write-Error "❌ .git folder not found. Repo not initialized."
+           exit 1
+        }
         $env:Path += ";C:\Program Files\Git\bin"
         $sha = "${{ github.sha }}"
         $pr = gh pr list --state merged --limit 20 --json number,mergeCommit,baseRefName,headRefName,labels,mergeCommit |
