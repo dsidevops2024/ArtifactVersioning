@@ -42,7 +42,18 @@ runs:
         gh auth status
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}   
- 
+    - name: Debug working directory
+      shell: powershell
+      run: |
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Contents:"
+        Get-ChildItem -Recurse -Depth 1
+
+        if (!(Test-Path ".git")) {
+           Write-Error "❌ .git folder not found. Repo not initialized."
+           exit 1
+        }
+
     - name: Get merged PR info
       id: pr
       shell: powershell
