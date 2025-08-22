@@ -12,6 +12,11 @@ jobs:
         with:
          fetch-depth: 0
 
+      - name: Debug .git
+        run: |
+          ls -a
+          git status
+
       - name: ✅ Confirm .git folder
         shell: powershell
         run: |
