@@ -88,10 +88,10 @@ jobs:
           java-version: '17'
 
       - name: Build with Maven
-        shell: powershell
+        shell: bash
         run: |
-          $mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
-          $env:Path += ";$mavenPath"
+          #$mavenPath = "C:\Program Files\Apache\Maven\apache-maven-3.9.11\bin"
+          #$env:Path += ";$mavenPath"
           mvn clean install -DskipTests
 
       - name: Calculate Versions and Changed Components
