@@ -29,8 +29,10 @@ runs:
       shell: powershell
       run: |
         $env:Path += ";C:\Program Files\GitHub CLI"
+        $env:Path += ";C:\Program Files\Git"
         Write-Host "GH CLI is available on PATH: $env:PATH"
         gh --version
+        git --version
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
 
