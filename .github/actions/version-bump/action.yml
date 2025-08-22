@@ -42,24 +42,26 @@ runs:
         gh auth status
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}   
-    - name: Debug working directory
-      shell: powershell
-      run: |
-        Write-Host "Current directory: $(Get-Location)"
-        Write-Host "Contents:"
-        Get-ChildItem -Recurse -Depth 1
-
-        if (!(Test-Path ".git")) {
-           Write-Error "❌ .git folder not found. Repo not initialized."
-           exit 1
-        }
-
+  
     - name: Get merged PR info
       id: pr
       shell: powershell
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
+        # Ensure we're in the Git repo root
+        Set-Location "$env:GITHUB_WORKSPACE"
+
+        # Debug
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Contents:"
+        Get-ChildItem -Force
+
+        # Check for .git
+        if (!(Test-Path ".git")) {
+           Write-Error "❌ .git folder not found. Repo not initialized."
+           exit 1
+        }
         $env:Path += ";C:\Program Files\Git\bin"
         $sha = "${{ github.sha }}"
         $pr = gh pr list --state merged --limit 20 --json number,mergeCommit,baseRefName,headRefName,labels,mergeCommit |
