@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: ✅ Confirm .git folder
-        shell: pwsh
+        shell: powershell
         run: |
           # Move to repo root
           Set-Location "$env:GITHUB_WORKSPACE"
