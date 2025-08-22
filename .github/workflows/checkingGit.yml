@@ -1,0 +1,30 @@
+name: checkingGit
+on: 
+  push:
+    
+jobs:
+  build:
+    runs-on: Versioning
+
+    steps:
+      - name: ✅ Checkout code
+        uses: actions/checkout@v4
+
+      - name: ✅ Confirm .git folder
+        shell: pwsh
+        run: |
+          # Move to repo root
+          Set-Location "$env:GITHUB_WORKSPACE"
+
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "Listing files:"
+          Get-ChildItem -Force
+
+          # Check if this is a Git repo
+          if (!(Test-Path ".git")) {
+            Write-Error "❌ .git folder not found. Repo not initialized."
+            exit 1
+          }
+
+          # Optional: Show Git version
+          git --version
