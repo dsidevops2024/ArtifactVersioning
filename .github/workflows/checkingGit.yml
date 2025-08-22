@@ -12,9 +12,14 @@ jobs:
         with:
          fetch-depth: 0
 
-      - name: Debug .git
+      - name: 🔍 Debug .git
+        shell: powershell
         run: |
-          ls -a
+          Write-Host "📁 Current directory: $(Get-Location)"
+          Write-Host "📄 Listing all files including hidden (.git):"
+          Get-ChildItem -Force
+
+          Write-Host "🔧 Checking Git status:"
           git status
 
       - name: ✅ Confirm .git folder
