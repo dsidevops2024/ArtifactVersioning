@@ -64,7 +64,7 @@ runs:
     
     - name: Detect changed components
       id: components
-      shell: pwsh
+      shell: bash
       run: |
         git fetch origin main
         FILES=$(git diff --name-only HEAD^1 HEAD)
