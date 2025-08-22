@@ -56,12 +56,11 @@ runs:
       #run: |
         #$env:Path += ";C:\Program Files\GitHub CLI"
         #"${{ inputs.github-token }}" | gh auth login --with-token
-
-
+        
     - name: Authenticate GitHub CLI
       shell: powershell
       run: |
-        '${{ inputs.github-token }}' | gh auth login --with-token
+        echo "${{ inputs.github-token }}" | gh auth login --with-token
 
     - name: Get merged PR info
       id: pr
