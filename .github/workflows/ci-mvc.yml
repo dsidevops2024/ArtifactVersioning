@@ -100,7 +100,9 @@ jobs:
           #VERSION=$(jq -r '.mvc' ./version-data/version.json)
           #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
           VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc.sphereboard')
-          echo "{\"mvc\":\"$VERSION\"}" > update.json
+          # ✅ Construct the nested update JSON properly
+          jq -n --arg v "$VERSION" '{mvc: {sphereboard: $v}}' > update.json
+          #echo "{\"mvc\":\"$VERSION\"}" > update.json
 
           MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
 
