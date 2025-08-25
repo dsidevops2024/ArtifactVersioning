@@ -97,8 +97,8 @@ jobs:
       - name: Calculate Versions and Changed Components
         if: github.ref == 'refs/heads/main'
         id: calculate
-        #uses: ./.github/actions/semversion-calculation
-        uses: ./.github/actions/version-bump
+        uses: ./.github/actions/semversion-calculation
+        #uses: ./.github/actions/version-bump
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
           json-versions: ${{ vars.JSON_VERSIONS }}
