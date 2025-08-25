@@ -50,13 +50,6 @@ jobs:
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
           json-versions: ${{ vars.JSON_VERSIONS }}
-
-      #- name: Use shared versioning action
-        #if: github.ref == 'refs/heads/main'
-        #uses: dsidevops2024/TrainBook/.github/actions/artifactory-multi-pull-curl@main
-        #with:
-          #github-token: ${{ secrets.AVPAT_TOKEN }}
-          #json-versions: ${{ vars.JSON_VERSIONS }}
           
       - name: Use calculated versions
         if: github.ref == 'refs/heads/main'
@@ -65,81 +58,6 @@ jobs:
           echo '${{ steps.calculate.outputs.version_json }}' | jq
           echo "Changed Components: ${{ steps.calculate.outputs.components }}"
           
-      #- name: Download version-info artifact (main only)
-        #if: github.ref == 'refs/heads/main'
-        #uses: dawidd6/action-download-artifact@v3
-        #with:
-          #name: version-info
-          #workflow: pr-version-push.yml
-          #workflow_conclusion: success
-          #branch: main
-          #repo: ${{ github.repository }}
-          #path: ./version-data
-          #github_token: ${{ secrets.GITHUB_TOKEN }}
-          #if_no_artifact_found: fail
-
-      #- name: Copy version-info locally
-        #if: github.ref == 'refs/heads/main'
-        #run: |
-          #mkdir -p version-data
-          #cp version.json version-data/version.json
-          
-      #- name: Determine REPO_PATH
-        #id: repo_path
-        #run: |
-          #BRANCH_NAME="${GITHUB_REF##*/}"
-          
-          #if [[ "$BRANCH_NAME" == "main" ]]; then
-            #VERSION=$(jq -r '.mvc' ./version-data/version.json)
-
-            #if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-              #echo "❌ MVC version missing or invalid."
-              #exit 1
-            #fi
-
-            #REPO_PATH="sb-dev-generic-local/main/$VERSION/mvc"
-            #echo "✅ Main branch build: version=$VERSION"
-          #else
-            #REPO_PATH="sb-dev-generic-local/$BRANCH_NAME/mvc"
-            #echo "🟡 Non-main branch build: version not used"
-          #fi
-
-          #echo "REPO_PATH=$REPO_PATH" >> $GITHUB_ENV
-          #echo "REPO_PATH=$REPO_PATH"
-      #- name: Determine REPO_PATH
-        #id: repo_path
-        #shell: powershell
-        #run: |
-          #$branchName = $Env:GITHUB_REF -split '/' | Select-Object -Last 1
-
-          #if ($branchName -eq 'main') {
-             # Parse JSON output from previous step
-             #$versionJson = '${{ steps.calculate.outputs.version_json }}'
-             #$versionObj = $versionJson | ConvertFrom-Json
-      
-             # To lowercase keys, workaround:
-             #$versionObjLower = @{}
-             #foreach ($key in $versionObj.PSObject.Properties.Name) {
-               #$versionObjLower[$key.ToLower()] = $versionObj.$key
-             #}
-      
-             #$version = $versionObjLower['mvc']
-
-             #if ([string]::IsNullOrEmpty($version) -or $version -eq 'null') {
-                #Write-Error "MVC version missing or invalid."
-                #exit 1
-             #}
-
-             #$repoPath = "sb-dev-ver-generic-local/$branchName/mvc/$version"
-            #}
-            #else {
-              #$repoPath = "sb-dev-generic-local/$branchName/mvc"
-            #}
-
-            # Set output and environment variable
-            #Write-Output "REPO_PATH=$repoPath"
-            #echo "REPO_PATH=$repoPath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-  
       - name: Determine REPO_PATH
         id: repo_path
         run: |
