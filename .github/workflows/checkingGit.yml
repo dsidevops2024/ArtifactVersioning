@@ -1,0 +1,44 @@
+name: checkingGit
+on: 
+  #push:
+  workflow_dispatch:
+    
+jobs:
+  build:
+    runs-on: Versioning
+
+    steps:
+      - name: ✅ Checkout code
+        uses: actions/checkout@v4
+        with:
+         fetch-depth: 0
+
+      - name: 🔍 Debug .git
+        shell: powershell
+        run: |
+          Write-Host "📁 Current directory: $(Get-Location)"
+          #Write-Host "📄 Listing all files including hidden (.git):"
+          Write-Host '📄 Listing all files including hidden (.git):'
+          Get-ChildItem -Force
+
+          Write-Host "🔧 Checking Git status:"
+          git status
+
+      - name: ✅ Confirm .git folder
+        shell: powershell
+        run: |
+          # Move to repo root
+          Set-Location "$env:GITHUB_WORKSPACE"
+
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "Listing files:"
+          Get-ChildItem -Force
+
+          # Check if this is a Git repo
+          if (!(Test-Path ".git")) {
+            Write-Error "❌ .git folder not found. Repo not initialized."
+            exit 1
+          }
+
+          # Optional: Show Git version
+          git --version
