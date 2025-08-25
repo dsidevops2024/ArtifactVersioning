@@ -12,7 +12,7 @@ jobs:
 
     steps:
 
-      - name: Checkout code1
+      - name: Checkout code2
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -100,6 +100,8 @@ jobs:
           #VERSION=$(jq -r '.mvc' ./version-data/version.json)
           #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
           VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc.sphereboard')
+          
+          #Added new lines
           # ✅ Construct the nested update JSON properly
           jq -n --arg v "$VERSION" '{mvc: {sphereboard: $v}}' > update.json
           #echo "{\"mvc\":\"$VERSION\"}" > update.json
