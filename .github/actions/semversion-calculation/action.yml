@@ -119,16 +119,37 @@ runs:
         COMPONENTS="${{ steps.components.outputs.components }}"
 
         for COMP in $COMPONENTS; do
-          CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
-          [[ "$CURRENT" == "null" ]] && continue
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          case "$BUMP_TYPE" in
-            major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
-            minor) ((MINOR+=1)); PATCH=0 ;;
-            patch) ((PATCH+=1)) ;;
-          esac
-          NEW="$MAJOR.$MINOR.$PATCH"
-          jq --arg c "$COMP" --arg v "$NEW" '.[$c]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
+          # Check whether the component is a version string or a nested object
+          VALUE_TYPE=$(jq -r --arg c "$COMP" 'if .[$c] | type == "object" then "object" else "string" end' tmp.json)
+          if [[ "$VALUE_TYPE" == "string" ]]; then
+            CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
+            [[ "$CURRENT" == "null" ]] && continue
+            #CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
+            #[[ "$CURRENT" == "null" ]] && continue
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+            case "$BUMP_TYPE" in
+              major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+              minor) ((MINOR+=1)); PATCH=0 ;;
+              patch) ((PATCH+=1)) ;;
+            esac
+              NEW="$MAJOR.$MINOR.$PATCH"
+              jq --arg c "$COMP" --arg v "$NEW" '.[$c]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
+
+              #newly added
+          elif [[ "$VALUE_TYPE" == "object" ]]; then
+            for SUB in $(jq -r --arg c "$COMP" '.[$c] | keys[]' tmp.json); do
+               CURRENT=$(jq -r --arg c "$COMP" --arg s "$SUB" '.[$c][$s]' tmp.json)
+               [[ "$CURRENT" == "null" ]] && continue
+               IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+               case "$BUMP_TYPE" in
+                 major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+                 minor) ((MINOR+=1)); PATCH=0 ;;
+                 patch) ((PATCH+=1)) ;;
+               esac
+               NEW="$MAJOR.$MINOR.$PATCH"
+               jq --arg c "$COMP" --arg s "$SUB" --arg v "$NEW" '.[$c][$s]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
+            done
+          fi
         done
 
         FINAL=$(jq -c . tmp.json)
