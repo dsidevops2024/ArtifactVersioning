@@ -64,7 +64,7 @@ jobs:
           BRANCH_NAME="${GITHUB_REF##*/}"
 
           if [[ "$BRANCH_NAME" == "main" ]]; then
-            $RAW_JSON='${{ steps.calculate.outputs.version_json }}'
+            RAW_JSON='${{ steps.calculate.outputs.version_json }}'
             # Detect if 'mvc' is an object or string
             VALUE_TYPE=$(echo "$RAW_JSON" | jq -r 'with_entries(.key |= ascii_downcase) | .mvc | type')
 
@@ -99,28 +99,28 @@ jobs:
       - name: Push artifact to the Artifactory
         run: |
           echo "Pushing artifact to Artifactory..."
-          #echo "Repo path: $REPO_PATH"
-          echo "Repo path: $env:REPO_PATH"
+          echo "Repo path: $REPO_PATH"
+          #echo "Repo path: $env:REPO_PATH"
           # Add actual curl or deploy command here
 
-      - name: Update JSON_VERSIONS GitHub org variable (main only)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
-          echo "$EXISTING" > existing.json
+      #- name: Update JSON_VERSIONS GitHub org variable (main only)
+        #if: github.ref == 'refs/heads/main'
+        #run: |
+          #EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
+          #echo "$EXISTING" > existing.json
 
           #VERSION=$(jq -r '.mvc' ./version-data/version.json)
           #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
-          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc.sphereboard')
+          #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc.sphereboard')
           
           #Added new lines
           # ✅ Construct the nested update JSON properly
-          jq -n --arg v "$VERSION" '{mvc: {sphereboard: $v}}' > update.json
+          #jq -n --arg v "$VERSION" '{mvc: {sphereboard: $v}}' > update.json
           #echo "{\"mvc\":\"$VERSION\"}" > update.json
 
-          MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+          #MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
 
-          echo "✅ Merged version JSON: $MERGED"
-          gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
-        env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+          #echo "✅ Merged version JSON: $MERGED"
+          #gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
+        #env:
+          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
