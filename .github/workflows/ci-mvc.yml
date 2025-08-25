@@ -64,9 +64,21 @@ jobs:
           BRANCH_NAME="${GITHUB_REF##*/}"
 
           if [[ "$BRANCH_NAME" == "main" ]]; then
+            $RAW_JSON='${{ steps.calculate.outputs.version_json }}'
+            # Detect if 'mvc' is an object or string
+            VALUE_TYPE=$(echo "$RAW_JSON" | jq -r 'with_entries(.key |= ascii_downcase) | .mvc | type')
+
+            if [[ "$VALUE_TYPE" == "string" ]]; then
+              VERSION=$(echo "$RAW_JSON" | jq -r 'with_entries(.key |= ascii_downcase) | .mvc')
+            elif [[ "$VALUE_TYPE" == "object" ]]; then
+              VERSION=$(echo "$RAW_JSON" | jq -r 'with_entries(.key |= ascii_downcase) | .mvc.sphereboard')
+            else
+              echo "❌ Unsupported type for 'mvc': $VALUE_TYPE"
+              exit 1
+            fi
             #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.mvc')
             #VERSION=$(jq -r 'with_entries(.key |= ascii_downcase) | .mvc' <<< '${{ steps.calculate.outputs.version_json }}')
-            VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc.sphereboard')
+            #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .mvc.sphereboard')
 
 
             if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
