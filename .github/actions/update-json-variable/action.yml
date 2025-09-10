@@ -4,6 +4,9 @@ inputs:
   updated_json:
     description: "Partial JSON with component versions to merge"
     required: true
+  github-token:
+    description: 'GitHub Token'
+    required: true
 runs:
   using: "composite"
   steps:
@@ -11,20 +14,37 @@ runs:
       shell: bash
       run: |
         echo '${{ inputs.updated_json }}' > update.json
-
+    
     - name: Fetch existing JSON_VERSIONS from GitHub
       shell: bash
       run: |
         EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
         echo "${EXISTING:-{}}" > existing.json
       env:
-        GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
-
-    - name: Merge JSONs and set variable
+        GH_TOKEN: ${{ inputs.github-token }}
+        #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+    
+    - name: Merge JSONs
       shell: bash
       run: |
         MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
         echo "Merged version JSON: $MERGED"
-        gh variable set JSON_VERSIONS --org dsidevops2024 --body "$MERGED" --visibility all
+        echo "$MERGED" > merged.json
+        echo "MERGED_JSON=$MERGED" >> $GITHUB_ENV
+
+    - name: Update JSON_VERSIONS
+      shell: bash
+      run: |
+        gh variable set JSON_VERSIONS --org dsidevops2024 --body "$MERGED_JSON" --visibility all
       env:
-        GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        
+    #- name: Merge JSONs and set variable
+      #shell: bash
+      #run: |
+        #MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+        #echo "Merged version JSON: $MERGED"
+        #gh variable set JSON_VERSIONS --org dsidevops2024 --body "$MERGED" --visibility all
+      #env:
+        #GH_TOKEN: ${{ inputs.github-token }}
+        #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
