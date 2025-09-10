@@ -5,6 +5,7 @@ on:
     paths:
       - 'backend/Receivers/**'
       - 'backend/Scheduler/**'
+      - 'backend/connectors/**'
 
 jobs:
   Changed-Files-JSON:
