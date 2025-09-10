@@ -16,7 +16,7 @@ outputs:
     value: ${{ steps.components.outputs.components }}
   partial_json:
     description: 'JSON containing only changed components'
-    value: ${{ steps.partial_json.outputs.partial_json }}
+    value: ${{ steps.extract_partial.outputs.partial_json }}
 runs:
   using: "composite"
   steps:
