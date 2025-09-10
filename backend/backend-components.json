@@ -10,5 +10,13 @@
   {
     "title": "SchedulerService",
     "srcPath": "Scheduler/SchedulerService"
+  },
+  {
+    "title": "ADLConnector",
+    "srcPath": "connectors/ADLConnector"
+  },
+  {
+    "title": "AccountTypeEngine",
+    "srcPath": "connectors/AccountTypeEngine"
   }
 ]
