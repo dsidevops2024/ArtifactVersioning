@@ -159,8 +159,8 @@ runs:
         echo "$FINAL" > version.json
         echo "updated_json=$FINAL" >> $GITHUB_OUTPUT
 
-    - name: Extract partial JSON for changed components
-      id: partial_json
+    - name: Extract partial_json from changed components
+      id: extract_partial
       shell: bash
       run: |
         FULL_JSON='${{ steps.bump_json.outputs.updated_json }}'
@@ -173,7 +173,24 @@ runs:
           PARTIAL_JSON=$(echo "$PARTIAL_JSON" | jq --argjson val "$VALUE" --arg c "$COMP" '. + {($c): $val}')
         done
 
-        echo "partial_json=$PARTIAL_JSON" >> $GITHUB_OUTPUT
+        # Safely output single-line JSON
+        echo "partial_json=$(echo "$PARTIAL_JSON" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+    #- name: Extract partial JSON for changed components
+      #id: partial_json
+      #shell: bash
+      #run: |
+        #FULL_JSON='${{ steps.bump_json.outputs.updated_json }}'
+        #CHANGED_COMPONENTS='${{ steps.components.outputs.components }}'
+
+        #PARTIAL_JSON='{}'
+
+        #for COMP in $CHANGED_COMPONENTS; do
+          #VALUE=$(echo "$FULL_JSON" | jq --arg c "$COMP" '.[$c]')
+          #PARTIAL_JSON=$(echo "$PARTIAL_JSON" | jq --argjson val "$VALUE" --arg c "$COMP" '. + {($c): $val}')
+        #done
+
+        #echo "partial_json=$PARTIAL_JSON" >> $GITHUB_OUTPUT
 
     #- name: Upload version.json
       #uses: actions/upload-artifact@v4
