@@ -13,19 +13,39 @@ runs:
     - name: Save input JSON to file
       shell: bash
       run: |
-        echo "${{ inputs.updated_json }}" | jq . > update.json || {
+        echo '${{ inputs.updated_json }}' | jq . > update.json || {
           echo "❌ Invalid JSON:"
-          echo "${{ inputs.updated_json }}"
+          echo '${{ inputs.updated_json }}'
           exit 1
         }
-    
+
     - name: Fetch existing JSON_VERSIONS from GitHub
       shell: bash
       run: |
-        EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
-        echo "${EXISTING:-{}}" > existing.json
+        # Fetch the variable as a string (GH stores JSON as string)
+        RAW=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
+
+        # Decode it into actual JSON and save to file
+        echo "$RAW" | jq -r . > existing.json
+
+        echo "✅ Parsed existing.json:"
+        cat existing.json
+
+        # Optional: validate
+        jq . existing.json > /dev/null || {
+          echo "❌ existing.json is invalid!"
+          exit 1
+        }
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        
+    #- name: Fetch existing JSON_VERSIONS from GitHub
+      #shell: bash
+      #run: |
+        #EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
+        #echo "${EXISTING:-{}}" > existing.json
+      #env:
+        #GH_TOKEN: ${{ inputs.github-token }}
         #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
     
     - name: Merge JSONs
