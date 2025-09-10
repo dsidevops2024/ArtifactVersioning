@@ -32,9 +32,30 @@ runs:
       shell: bash
       run: |
         MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
-        echo "Merged version JSON: $MERGED"
+
+        echo "Merged version JSON:"
+        echo "$MERGED"
+
         echo "$MERGED" > merged.json
-        echo "MERGED_JSON=$MERGED" >> $GITHUB_ENV
+
+        # Validate merged
+        echo "$MERGED" | jq . > /dev/null || {
+          echo "❌ Merged JSON is invalid"
+          cat merged.json
+          exit 1
+        }
+
+        # Safely set the env variable
+        ESCAPED=$(echo "$MERGED" | jq -c .)
+        echo "MERGED_JSON=$ESCAPED" >> $GITHUB_ENV
+
+    #- name: Merge JSONs
+      #shell: bash
+      #run: |
+        #MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+        #echo "Merged version JSON: $MERGED"
+        #echo "$MERGED" > merged.json
+        #echo "MERGED_JSON=$MERGED" >> $GITHUB_ENV
 
     - name: Update JSON_VERSIONS
       shell: bash

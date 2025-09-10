@@ -115,7 +115,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Update version
+      - name: Update versions
         uses: ./.github/actions/update-json-variable
         with:
           updated_json: '${{ needs.build.outputs.partial_json }}'
