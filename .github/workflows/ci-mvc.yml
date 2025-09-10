@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    outputs:
+       partial_json: ${{ steps.calculate.outputs.partial_json }}
     steps:
 
       - name: Checkout code3
@@ -104,6 +105,7 @@ jobs:
           # Add actual curl or deploy command here
 
   update-json:
+    needs: build
     if: github.ref == 'refs/heads/main'
     concurrency:
       group: version-update
@@ -113,7 +115,7 @@ jobs:
       - name: Update version
         uses: ./.github/actions/update-json-variable
         with:
-          updated_json: ${{ steps.calculate.outputs.partial_json }}
+          updated_json: ${{ needs.build.outputs.partial_json }}
 
       #- name: Update JSON_VERSIONS GitHub org variable (main only)
         #if: github.ref == 'refs/heads/main'
