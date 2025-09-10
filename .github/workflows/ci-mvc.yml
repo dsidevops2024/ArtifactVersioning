@@ -13,7 +13,7 @@ jobs:
        partial_json: ${{ steps.calculate.outputs.partial_json }}
     steps:
 
-      - name: Checkout code2
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
