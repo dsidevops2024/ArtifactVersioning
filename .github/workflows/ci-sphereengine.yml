@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    outputs:
+       partial_json: ${{ steps.calculate.outputs.partial_json }}
     steps:
       - name: Checkout code22
         uses: actions/checkout@v3
@@ -81,23 +82,40 @@ jobs:
           echo "Repo path: $REPO_PATH"
           # Add actual curl or deploy command here
 
-      - name: Update JSON_VERSIONS GitHub org variable (main only)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
-          echo "$EXISTING" > existing.json
+  update-json:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: version-update
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Update versions
+        uses: ./.github/actions/update-json-variable
+        with:
+          updated_json: '${{ needs.build.outputs.partial_json }}'
+          github-token: ${{ secrets.AVPAT_TOKEN }}
+
+      #- name: Update JSON_VERSIONS GitHub org variable (main only)
+        #if: github.ref == 'refs/heads/main'
+        #run: |
+          #EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
+          #echo "$EXISTING" > existing.json
 
           #VERSION=$(jq -r '.mvc' ./version-data/version.json)
           #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r '.sphereengine')
-          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .sphereengine')
-          echo "{\"sphereengine\":\"$VERSION\"}" > update.json
+          #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r 'with_entries(.key |= ascii_downcase) | .sphereengine')
+          #echo "{\"sphereengine\":\"$VERSION\"}" > update.json
 
-          MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+          #MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
 
-          echo "✅ Merged version JSON: $MERGED"
-          gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
-        env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+          #echo "✅ Merged version JSON: $MERGED"
+          #gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
+        #env:
+          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
       
       #- name: Determine REPO_PATH
         #id: repo_path
