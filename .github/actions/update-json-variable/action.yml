@@ -1,0 +1,30 @@
+name: "Update JSON_VERSIONS"
+description: "Safely update the GitHub org-level JSON_VERSIONS variable without race conditions"
+inputs:
+  updated_json:
+    description: "Partial JSON with component versions to merge"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Save input JSON to file
+      shell: bash
+      run: |
+        echo '${{ inputs.updated_json }}' > update.json
+
+    - name: Fetch existing JSON_VERSIONS from GitHub
+      shell: bash
+      run: |
+        EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
+        echo "${EXISTING:-{}}" > existing.json
+      env:
+        GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+
+    - name: Merge JSONs and set variable
+      shell: bash
+      run: |
+        MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+        echo "Merged version JSON: $MERGED"
+        gh variable set JSON_VERSIONS --org dsidevops2024 --body "$MERGED" --visibility all
+      env:
+        GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}

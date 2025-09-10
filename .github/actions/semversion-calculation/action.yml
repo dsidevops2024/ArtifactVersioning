@@ -14,6 +14,9 @@ outputs:
   components:
     description: 'List of changed components'
     value: ${{ steps.components.outputs.components }}
+  partial_json:
+    description: 'JSON containing only changed components'
+    value: ${{ steps.partial_json.outputs.partial_json }}
 runs:
   using: "composite"
   steps:
@@ -155,6 +158,22 @@ runs:
         FINAL=$(jq -c . tmp.json)
         echo "$FINAL" > version.json
         echo "updated_json=$FINAL" >> $GITHUB_OUTPUT
+
+    - name: Extract partial JSON for changed components
+      id: partial_json
+      shell: bash
+      run: |
+        FULL_JSON='${{ steps.bump_json.outputs.updated_json }}'
+        CHANGED_COMPONENTS='${{ steps.components.outputs.components }}'
+
+        PARTIAL_JSON='{}'
+
+        for COMP in $CHANGED_COMPONENTS; do
+          VALUE=$(echo "$FULL_JSON" | jq --arg c "$COMP" '.[$c]')
+          PARTIAL_JSON=$(echo "$PARTIAL_JSON" | jq --argjson val "$VALUE" --arg c "$COMP" '. + {($c): $val}')
+        done
+
+        echo "partial_json=$PARTIAL_JSON" >> $GITHUB_OUTPUT
 
     #- name: Upload version.json
       #uses: actions/upload-artifact@v4
