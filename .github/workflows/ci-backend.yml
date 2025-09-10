@@ -73,6 +73,8 @@ jobs:
     defaults:
       run:
         working-directory: backend/${{ matrix.component.srcPath }}
+    outputs:
+       partial_json: ${{ steps.calculate.outputs.partial_json }}
 
     steps:
       - uses: actions/checkout@v4
@@ -154,6 +156,23 @@ jobs:
           echo "Pushing artifact to Artifactory..."
           echo "Repo path: $REPO_PATH"
           #echo "Repo path: $env:REPO_PATH"
+
+  update-json:
+    needs: Build-Changed-Components
+    if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: version-update
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Update versions
+        uses: ./.github/actions/update-json-variable
+        with:
+          updated_json: '${{ needs.Build-Changed-Components.outputs.partial_json }}'
+          github-token: ${{ secrets.AVPAT_TOKEN }}
           
       #- name: Update JSON_VERSIONS GitHub org variable (main only)
         #if: github.ref == 'refs/heads/main'
@@ -231,30 +250,30 @@ jobs:
           #gh variable set JSON_VERSIONS --body "$FINAL" --org dsidevops2024 --visibility all
         #env:
           #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
-      - name: Update JSON_VERSIONS GitHub org variable (main only)
-        if: github.ref == 'refs/heads/main'
-        working-directory: ${{ github.workspace }}
-        run: |
-          COMPONENT="${{ matrix.component.title }}"
-          if [[ -z "$COMPONENT" ]]; then
-            echo "❌ Component title not set."
-            exit 1
-          fi
+      #- name: Update JSON_VERSIONS GitHub org variable (main only)
+        #if: github.ref == 'refs/heads/main'
+        #working-directory: ${{ github.workspace }}
+        #run: |
+          #COMPONENT="${{ matrix.component.title }}"
+          #if [[ -z "$COMPONENT" ]]; then
+            #echo "❌ Component title not set."
+            #exit 1
+          #fi
           
-          EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
-          echo "$EXISTING" > existing.json
+          #EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
+          #echo "$EXISTING" > existing.json
 
-          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r --arg key "$COMPONENT" '.[$key]')
+          #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r --arg key "$COMPONENT" '.[$key]')
           
-          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-            echo "❌ Version not found for $COMPONENT"
-            exit 1
-          fi
+          #if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+            #echo "❌ Version not found for $COMPONENT"
+            #exit 1
+          #fi
 
-          echo "{\"$COMPONENT\":\"$VERSION\"}" > update.json   
-          MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+          #echo "{\"$COMPONENT\":\"$VERSION\"}" > update.json   
+          #MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
 
-          echo "✅ Merged version JSON: $MERGED"
-          gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
-        env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+          #echo "✅ Merged version JSON: $MERGED"
+          #gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
+        #env:
+          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
