@@ -13,9 +13,9 @@ runs:
     - name: Save input JSON to file
       shell: bash
       run: |
-        echo '${{ inputs.updated_json }}' | jq . > update.json || {
+        echo "${{ inputs.updated_json }}" | jq . > update.json || {
           echo "❌ Invalid JSON:"
-          echo '${{ inputs.updated_json }}'
+          echo "${{ inputs.updated_json }}"
           exit 1
         }
     
