@@ -5,6 +5,7 @@ on:
     paths:
       - 'backend/Receivers/**'
       - 'backend/Scheduler/**'
+      - 'backend/connectors/**'
 
 jobs:
   Changed-Files-JSON:
@@ -122,44 +123,6 @@ jobs:
           #path: ./version-data
           #github_token: ${{ secrets.GITHUB_TOKEN }}
           #if_no_artifact_found: fail
-
-      #- name: Determine REPO_PATH
-        #shell: powershell
-        #working-directory: ${{ github.workspace }}
-        #id: repo_path
-        #run: |
-          #$branchName = "${env:GITHUB_REF}" -split '/' | Select-Object -Last 1
-          #$component = "${{ matrix.component.title }}"
-          #$versionJson = '${{ steps.calculate.outputs.version_json }}'
-          #$versionJsonRaw = @'
-          #${{ steps.calculate.outputs.version_json }}
-          #'@
-
-          #if ($branchName -eq 'main') {
-            #try {
-              #$version = ($versionJsonRaw | ConvertFrom-Json).$component
-            #} catch {
-              #Write-Error "❌ Failed to parse version for $component from version_json"
-              #exit 1
-            #}
-
-            #if (-not $version) {
-              #Write-Error "❌ Version missing for $component"
-              #exit 1
-            #}
-
-            #$repoPath = "sb-dev-generic-local/main/$component/$version/"
-            #Write-Host "✅ Main branch build for $component: $repoPath"
-            #Write-Host "✅ Main branch build for ${component}: ${repoPath}"
-            #} else {
-              #$repoPath = "sb-dev-generic-local/$branchName/$component"
-              #Write-Host "🟡 Non-main branch build for $component: $repoPath"
-              #Write-Host "🟡 Non-main branch build for ${component}: ${repoPath}"
-          #}
-
-          # Set environment variable and output
-          #"REPO_PATH=$repoPath" | Out-File -FilePath $env:GITHUB_ENV -Append
-          #"REPO_PATH=$repoPath" | Write-Output
       
       - name: Determine REPO_PATH
         working-directory: ${{ github.workspace }}
