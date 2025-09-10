@@ -254,10 +254,12 @@ jobs:
       - name: Merge versions into org variable
         run: |
           EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
-          echo "$EXISTING" > existing.json
+          echo "${EXISTING:-{}}" > existing.json
 
-          # Grab full version_json from the matrix job output
-          NEW_VERSIONS='${{ needs.Build-Changed-Components.outputs.version_json }}'
+          NEW_VERSIONS=${{ needs.Build-Changed-Components.outputs.version_json }}
+          if [[ -z "$NEW_VERSIONS" ]]; then
+            NEW_VERSIONS="{}"
+          fi
           echo "$NEW_VERSIONS" > update.json
 
           FINAL=$(jq -s '.[0] * .[1]' existing.json update.json)
@@ -265,7 +267,7 @@ jobs:
           echo "✅ Final merged JSON: $FINAL"
           gh variable set JSON_VERSIONS --body "$FINAL" --org dsidevops2024 --visibility all
         env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }} 
+          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
       #- name: Update JSON_VERSIONS GitHub org variable (main only)
         #if: github.ref == 'refs/heads/main'
         #working-directory: ${{ github.workspace }}
