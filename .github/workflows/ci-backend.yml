@@ -246,30 +246,50 @@ jobs:
           # Update GitHub org variable
           #gh variable set JSON_VERSIONS --body "$merged" --org dsidevops2024 --visibility all
 
-      - name: Update JSON_VERSIONS GitHub org variable (main only)
-        if: github.ref == 'refs/heads/main'
-        working-directory: ${{ github.workspace }}
+  Update-JSON-VERSIONS:
+    needs: Build-Changed-Components
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Merge versions into org variable
         run: |
-          COMPONENT="${{ matrix.component.title }}"
-          if [[ -z "$COMPONENT" ]]; then
-            echo "❌ Component title not set."
-            exit 1
-          fi
-          
           EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
           echo "$EXISTING" > existing.json
 
-          VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r --arg key "$COMPONENT" '.[$key]')
-          #VERSION=$(jq -r --arg key "$COMPONENT" '.[$key]' ./version-data/version.json)
-          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-            echo "❌ Version not found for $COMPONENT"
-            exit 1
-          fi
+          # Grab full version_json from the matrix job output
+          NEW_VERSIONS='${{ needs.Build-Changed-Components.outputs.version_json }}'
+          echo "$NEW_VERSIONS" > update.json
 
-          echo "{\"$COMPONENT\":\"$VERSION\"}" > update.json   
-          MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+          FINAL=$(jq -s '.[0] * .[1]' existing.json update.json)
 
-          echo "✅ Merged version JSON: $MERGED"
-          gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
+          echo "✅ Final merged JSON: $FINAL"
+          gh variable set JSON_VERSIONS --body "$FINAL" --org dsidevops2024 --visibility all
         env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}  
+      #- name: Update JSON_VERSIONS GitHub org variable (main only)
+        #if: github.ref == 'refs/heads/main'
+        #working-directory: ${{ github.workspace }}
+        #run: |
+          #COMPONENT="${{ matrix.component.title }}"
+          #if [[ -z "$COMPONENT" ]]; then
+            #echo "❌ Component title not set."
+            #exit 1
+          #fi
+          
+          #EXISTING=$(gh variable get JSON_VERSIONS --org dsidevops2024 --json value -q .value)
+          #echo "$EXISTING" > existing.json
+
+          #VERSION=$(echo '${{ steps.calculate.outputs.version_json }}' | jq -r --arg key "$COMPONENT" '.[$key]')
+          #VERSION=$(jq -r --arg key "$COMPONENT" '.[$key]' ./version-data/version.json)
+          #if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+            #echo "❌ Version not found for $COMPONENT"
+            #exit 1
+          #fi
+
+          #echo "{\"$COMPONENT\":\"$VERSION\"}" > update.json   
+          #MERGED=$(jq -s '.[0] * .[1]' existing.json update.json)
+
+          #echo "✅ Merged version JSON: $MERGED"
+          #gh variable set JSON_VERSIONS --body "$MERGED" --org dsidevops2024 --visibility all
+        #env:
+          #GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}
