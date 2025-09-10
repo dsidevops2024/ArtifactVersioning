@@ -13,7 +13,13 @@ runs:
     - name: Save input JSON to file
       shell: bash
       run: |
-        echo '${{ inputs.updated_json }}' > update.json
+        echo "${{ inputs.updated_json }}" > update.json
+
+    - name: Validate incoming JSON
+      shell: bash
+      run: |
+        jq . update.json > /dev/null || { echo "❌ Invalid JSON in input."; cat update.json; exit 1; }
+        #echo '${{ inputs.updated_json }}' > update.json
     
     - name: Fetch existing JSON_VERSIONS from GitHub
       shell: bash
