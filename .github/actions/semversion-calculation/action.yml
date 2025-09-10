@@ -16,7 +16,7 @@ outputs:
     value: ${{ steps.components.outputs.components }}
   partial_json:
     description: 'JSON containing only changed components'
-    value: ${{ steps.partial_json.outputs.partial_json }}
+    value: ${{ steps.extract_partial.outputs.partial_json }}
 runs:
   using: "composite"
   steps:
@@ -172,7 +172,8 @@ runs:
           VALUE=$(echo "$FULL_JSON" | jq --arg c "$COMP" '.[$c]')
           PARTIAL_JSON=$(echo "$PARTIAL_JSON" | jq --argjson val "$VALUE" --arg c "$COMP" '. + {($c): $val}')
         done
-
+        # Print to logs
+        echo "partial_json: $PARTIAL_JSON"
         # Safely output single-line JSON
         echo "partial_json=$(echo "$PARTIAL_JSON" | jq -c .)" >> "$GITHUB_OUTPUT"
 
