@@ -118,7 +118,7 @@ jobs:
       - name: Update version
         uses: ./.github/actions/update-json-variable
         with:
-          updated_json: ${{ needs.build.outputs.partial_json }}
+          updated_json: '${{ needs.build.outputs.partial_json }}'
           github-token: ${{ secrets.AVPAT_TOKEN }}
 
       #- name: Update JSON_VERSIONS GitHub org variable (main only)
