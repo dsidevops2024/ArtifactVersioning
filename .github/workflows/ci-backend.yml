@@ -265,7 +265,7 @@ jobs:
           echo "✅ Final merged JSON: $FINAL"
           gh variable set JSON_VERSIONS --body "$FINAL" --org dsidevops2024 --visibility all
         env:
-          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }}  
+          GH_TOKEN: ${{ secrets.AVPAT_TOKEN }} 
       #- name: Update JSON_VERSIONS GitHub org variable (main only)
         #if: github.ref == 'refs/heads/main'
         #working-directory: ${{ github.workspace }}
