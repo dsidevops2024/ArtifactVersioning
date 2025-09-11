@@ -105,6 +105,7 @@ jobs:
         with:
           github-token: ${{ secrets.AVPAT_TOKEN }}
           json-versions: ${{ vars.JSON_VERSIONS }}
+          current-component: ${{ matrix.components.title }}
 
       - name: Use calculated versions
         if: github.ref == 'refs/heads/main'
