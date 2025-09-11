@@ -120,28 +120,28 @@ runs:
 
         BUMP_TYPE="${{ steps.labels.outputs.type }}"
         COMPONENTS="${{ steps.components.outputs.components }}"
+        CURRENT_COMPONENT="${{ inputs.current-component }}"
 
-        for COMP in $COMPONENTS; do
-          # Check whether the component is a version string or a nested object
-          VALUE_TYPE=$(jq -r --arg c "$COMP" 'if .[$c] | type == "object" then "object" else "string" end' tmp.json)
+        # Only bump the current component specified
+        if [[ -n "$CURRENT_COMPONENT" && "$COMPONENTS" =~ $CURRENT_COMPONENT ]]; then
+          # Check whether the current component is a version string or a nested object
+          VALUE_TYPE=$(jq -r --arg c "$CURRENT_COMPONENT" 'if .[$c] | type == "object" then "object" else "string" end' tmp.json)
+      
           if [[ "$VALUE_TYPE" == "string" ]]; then
-            CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
+            CURRENT=$(jq -r --arg c "$CURRENT_COMPONENT" '.[$c]' tmp.json)
             [[ "$CURRENT" == "null" ]] && continue
-            #CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
-            #[[ "$CURRENT" == "null" ]] && continue
             IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
             case "$BUMP_TYPE" in
               major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
               minor) ((MINOR+=1)); PATCH=0 ;;
               patch) ((PATCH+=1)) ;;
             esac
-              NEW="$MAJOR.$MINOR.$PATCH"
-              jq --arg c "$COMP" --arg v "$NEW" '.[$c]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
+            NEW="$MAJOR.$MINOR.$PATCH"
+            jq --arg c "$CURRENT_COMPONENT" --arg v "$NEW" '.[$c]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
 
-              #newly added
           elif [[ "$VALUE_TYPE" == "object" ]]; then
-            for SUB in $(jq -r --arg c "$COMP" '.[$c] | keys[]' tmp.json); do
-               CURRENT=$(jq -r --arg c "$COMP" --arg s "$SUB" '.[$c][$s]' tmp.json)
+            for SUB in $(jq -r --arg c "$CURRENT_COMPONENT" '.[$c] | keys[]' tmp.json); do
+               CURRENT=$(jq -r --arg c "$CURRENT_COMPONENT" --arg s "$SUB" '.[$c][$s]' tmp.json)
                [[ "$CURRENT" == "null" ]] && continue
                IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
                case "$BUMP_TYPE" in
@@ -150,28 +150,78 @@ runs:
                  patch) ((PATCH+=1)) ;;
                esac
                NEW="$MAJOR.$MINOR.$PATCH"
-               jq --arg c "$COMP" --arg s "$SUB" --arg v "$NEW" '.[$c][$s]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
+               jq --arg c "$CURRENT_COMPONENT" --arg s "$SUB" --arg v "$NEW" '.[$c][$s]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
             done
           fi
-        done
+        fi
 
         FINAL=$(jq -c . tmp.json)
         echo "$FINAL" > version.json
         echo "updated_json=$FINAL" >> $GITHUB_OUTPUT
+
+    #old code
+    #- name: Bump version JSON
+      #id: bump_json
+      #shell: bash
+      #run: |
+        #echo '${{ inputs.json-versions }}' | jq . > versions.json 
+        #cp versions.json tmp.json
+
+        #BUMP_TYPE="${{ steps.labels.outputs.type }}"
+        #COMPONENTS="${{ steps.components.outputs.components }}"
+
+        #for COMP in $COMPONENTS; do
+          # Check whether the component is a version string or a nested object
+          #VALUE_TYPE=$(jq -r --arg c "$COMP" 'if .[$c] | type == "object" then "object" else "string" end' tmp.json)
+          #if [[ "$VALUE_TYPE" == "string" ]]; then
+            #CURRENT=$(jq -r --arg c "$COMP" '.[$c]' tmp.json)
+            #[[ "$CURRENT" == "null" ]] && continue
+            
+            #IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+            #case "$BUMP_TYPE" in
+              #major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+              #minor) ((MINOR+=1)); PATCH=0 ;;
+              #patch) ((PATCH+=1)) ;;
+            #esac
+              #NEW="$MAJOR.$MINOR.$PATCH"
+              #jq --arg c "$COMP" --arg v "$NEW" '.[$c]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
+
+              #newly added
+          #elif [[ "$VALUE_TYPE" == "object" ]]; then
+            #for SUB in $(jq -r --arg c "$COMP" '.[$c] | keys[]' tmp.json); do
+               #CURRENT=$(jq -r --arg c "$COMP" --arg s "$SUB" '.[$c][$s]' tmp.json)
+               #[[ "$CURRENT" == "null" ]] && continue
+               #IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+               #case "$BUMP_TYPE" in
+                 #major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+                 #minor) ((MINOR+=1)); PATCH=0 ;;
+                 #patch) ((PATCH+=1)) ;;
+               #esac
+               #NEW="$MAJOR.$MINOR.$PATCH"
+               #jq --arg c "$COMP" --arg s "$SUB" --arg v "$NEW" '.[$c][$s]=$v' tmp.json > tmp2.json && mv tmp2.json tmp.json
+            #done
+          #fi
+        #done
+
+        #FINAL=$(jq -c . tmp.json)
+        #echo "$FINAL" > version.json
+        #echo "updated_json=$FINAL" >> $GITHUB_OUTPUT
 
     - name: Extract partial_json from changed components
       id: extract_partial
       shell: bash
       run: |
         FULL_JSON='${{ steps.bump_json.outputs.updated_json }}'
-        CHANGED_COMPONENTS='${{ steps.components.outputs.components }}'
+        CHANGED_COMPONENT="${{ inputs.current-component }}" # Only the current component
 
         PARTIAL_JSON='{}'
 
-        for COMP in $CHANGED_COMPONENTS; do
-          VALUE=$(echo "$FULL_JSON" | jq --arg c "$COMP" '.[$c]')
-          PARTIAL_JSON=$(echo "$PARTIAL_JSON" | jq --argjson val "$VALUE" --arg c "$COMP" '. + {($c): $val}')
-        done
+        # Fetch the version of the changed component
+        if [[ -n "$CHANGED_COMPONENT" ]]; then
+          VALUE=$(echo "$FULL_JSON" | jq --arg c "$CHANGED_COMPONENT" '.[$c]')
+          PARTIAL_JSON=$(echo "$PARTIAL_JSON" | jq --argjson val "$VALUE" --arg c "$CHANGED_COMPONENT" '. + {($c): $val}')
+        fi
+
         # Print to logs
         echo "partial_json: $PARTIAL_JSON"
         # Safely output single-line JSON
