@@ -7,6 +7,10 @@ inputs:
   json-versions:
     description: 'JSON_VERSIONS org variable value'
     required: true
+  current-component:
+    description: 'Current component name for this workflow (e.g. mvc or sphereengine)'
+    required: true
+       
 outputs:
   version_json:
     description: 'Updated version JSON'
