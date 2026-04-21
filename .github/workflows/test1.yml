@@ -9,7 +9,13 @@ on:
         required: true
 
 jobs:
+  checking:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
   call-test2:
+    needs: checking
     uses: ./.github/workflows/test2.yml
     with:
       environment: ${{ inputs.environment }}
