@@ -10,7 +10,7 @@ on:
 
 jobs:
   call-test2:
-    uses: ./.github/workflows/test2.yml@main
+    uses: ./.github/workflows/test2.yml
     with:
       environment: ${{ inputs.environment }}
     secrets:
