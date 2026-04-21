@@ -11,6 +11,7 @@ on:
 jobs:
   print-secret:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }} 
     steps:
       - run: |
           echo "✅ Test2 received ADMIN_USERNAME from Trainbook dev env: ${{ secrets.ADMIN_USERNAME }}"
