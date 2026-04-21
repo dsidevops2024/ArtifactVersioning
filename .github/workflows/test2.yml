@@ -1,0 +1,16 @@
+name: Test2
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+    secrets:
+      ADMIN_USERNAME:
+        required: true
+
+jobs:
+  print-secret:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "✅ Test2 received ADMIN_USERNAME from Trainbook dev env: ${{ secrets.ADMIN_USERNAME }}"
