@@ -1,0 +1,17 @@
+name: Test1
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+    secrets:
+      ADMIN_USERNAME:
+        required: true
+
+jobs:
+  call-test2:
+    uses: ./.github/workflows/test2.yml@main
+    with:
+      environment: ${{ inputs.environment }}
+    secrets:
+      ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}  # Forward again
