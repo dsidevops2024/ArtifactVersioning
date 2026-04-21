@@ -19,7 +19,7 @@ jobs:
 
   call-test1:
     needs: deploy
-    uses: ./.github/workflows/test1.yml@main
+    uses: ./.github/workflows/test1.yml
     with:
       environment: ${{ inputs.environment }}
     secrets:
