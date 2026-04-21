@@ -16,3 +16,11 @@ jobs:
     steps:
       - run: |
            echo "Using secret: ${{ secrets.ADMIN_USERNAME }}"
+
+  call-test1:
+    needs: deploy
+    uses: ./.github/workflows/test1.yml@main
+    with:
+      environment: ${{ inputs.environment }}
+    secrets:
+      ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}  # Forward secret
